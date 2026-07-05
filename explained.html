@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Carbonator Explained — Carbonator</title>
+  <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo"><a href="index.html"><span>CARB</span><span class="onator">ONATOR</span></a></div>
+      <div class="tag">SSP teaching tool</div>
+    </div>
+    <nav class="topnav">
+      <a href="index.html" class="cta">Open the app</a>
+      <a href="explained.html" class="active">Explained</a>
+      <a href="faqs.html">FAQs</a>
+      <a href="schools.html">Schools</a>
+      <a href="team.html">Team</a>
+    </nav>
+  </div>
+
+  <div class="page">
+    <h1>Carbonator Explained</h1>
+
+    <div class="note">
+      This page was written for the original Carbonator and describes the ideas behind the model.
+      Carbonator&nbsp;2 works the same way, but its scenarios are now the CMIP6 <em>Shared Socioeconomic
+      Pathways</em> (SSPs) and some inputs are specified directly as radiative forcings (W/m²) rather
+      than as emissions of SO₂, volcanic aerosols, solar output and albedo.
+    </div>
+
+    <div class="card">
+      <h2>What is Carbonator?</h2>
+      <p>Carbonator is a simple climate model. Unlike a full climate model that can tell us how climate variables evolve at different locations it can only tell us how a subset of variables change on a global scale (e.g. globally averaged temperature). Carbonator uses only a few hundred lines of computer code and takes a few seconds to simulate centuries of climate system evolution on your computer.</p>
+      <p>Carbonator is based on the same laws of physics that underpin state-of-the-art climate models (in particular the conservation of energy) and for a limited number of variables will produce very similar results to those models. As such, it is a powerful tool that can be used to explore how the climate system is affected by different factors (like CO<sub>2</sub> emissions, volcanoes or changes in the power output of the sun) and how our decisions are likely to affect the climate system in the future.</p>
+      <p>Based on a set of inputs (that you can modify):</p>
+      <ol>
+        <li>CO<sub>2</sub> emissions (billions of tonnes of carbon released into the atmosphere each year)</li>
+        <li>CH<sub>4</sub> (methane) emissions</li>
+        <li>Human aerosol forcing</li>
+        <li>Volcanic aerosol forcing</li>
+        <li>Solar forcing</li>
+        <li>Other greenhouse gas and ozone forcings (N<sub>2</sub>O, other well-mixed gases, ozone)</li>
+      </ol>
+      <p>Carbonator will calculate how various climate variables will change over time, including:</p>
+      <ul>
+        <li>Surface temperature</li>
+        <li>Deep ocean temperature</li>
+        <li>Sea-level</li>
+        <li>Ocean pH</li>
+        <li>Atmospheric concentrations of CO<sub>2</sub> and CH<sub>4</sub></li>
+      </ul>
+      <p>The following schematic shows all the components of Carbonator:</p>
+      <p><img src="assets/img/content/05.png" alt="Carbonator model schematic"></p>
+      <p>Carbonator is made up of a number of sub-models, that feed information to the main <em>Energy Balance Model</em>.</p>
+
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <h2>Energy Balance Model</h2>
+        <p>At the heart of Carbonator (and all climate models) is an energy balance model. This simply means that if we know the energy entering or leaving the climate system, then we can calculate how the energy content (otherwise known as temperature) will change. By making estimates of how energy coming in or out changes in the future then we can predict what will happen to temperature (and other climate variables) in the future.</p>
+        <p>If there were an increase in the energy entering the climate system (for example if the sun were to get a little stronger), this would very quickly heat up the atmosphere, land surface and upper ocean. It would take much longer for that extra heat to gradually mix down into the deep ocean.</p>
+        <p>So let&rsquo;s build a (box) model of the climate system:</p>
+        <ol>
+          <li>Let&rsquo;s replace the atmosphere, land surface, and upper ocean by a box (box 1). To make this box behave realistically it needs to have the same heat capacity as the combined atmosphere, land surface, and upper ocean (top 500m). [Heat capacity is the amount of energy it takes to increase an object&rsquo;s temperature by 1&deg;C]. The heat capacity of this box is relatively small so that changes in energy into or out of the box cause rapid changes in temperature.</li>
+          <li>Next we replace the deep ocean (top 4000m) with a second box. The deep ocean has a much larger heat capacity than the combined atmosphere, land surface, and upper ocean, so our second box will have a much larger heat capacity than the first box. As such it will respond more slowly to changes in energy into or out of the box.</li>
+        </ol>
+        <p>Next we need to define some properties of these boxes:</p>
+        <ol>
+          <li>Energy from the sun can only directly warm the first box (i.e. solar energy is absorbed in the top few metres of the ocean). But if the temperatures of the boxes are different then heat will gradually mix from the warmer to the cooler box (making the warmer box cooler and the cooler box warmer!). We are going to assume that the energy transferred between the boxes is proportional to the difference in temperature between the boxes.</li>
+          <li>When objects warm they also release energy (for example because we are warm we release heat energy to the atmosphere). This means that as the first box warms it will also release energy upwards (to space) as well as downwards (into the deep ocean). We are going to assume that the energy lost to space is proportional to the temperature of the upper box.</li>
+        </ol>
+        <p>So here is our (two box) model of the climate system:</p>
+        <p><img src="assets/img/content/06.png" alt="Two-box model schematic"></p>
+        <p>Now we need some equations to describe the temperature changes in the two boxes (one equation for each box).</p>
+        <h3>Box 1:</h3>
+        <p>Change in energy in box 1 each second = Energy coming in each second &ndash; Energy going out each second (from the top and bottom of box 1)</p>
+        <p>The energy in the box (E) [measured in Joules] is the heat capacity of the box (C) multiplied by the temperature of the box (T). Mathematically the change in energy (E) with time (t) is written as:</p>
+        <p><img src="assets/img/content/07.png" alt="dE/dt"></p>
+        <p>But because E = C &times; T (and C is a constant, i.e. the heat capacity doesn&rsquo;t change):</p>
+        <p><img src="assets/img/content/08.png" alt="dE/dt = C dT/dt"></p>
+        <p>In other words, this says that the change of energy in box 1 (per second) equals the heat capacity of box 1 multiplied by the change in temperature in box 1 (each second).</p>
+        <p>Putting this all together:</p>
+        <p><img src="assets/img/content/09.png" alt="Energy balance equation"></p>
+        <p>From (3) above, we know that the E<sub>out</sub> [measured in Joules per second] is proportional to the temperature of box 1:</p>
+        <p><img src="assets/img/content/10.png" alt="E_out = aT"></p>
+        <p>(where <em>a</em> is a constant)</p>
+        <p>From (4) above, we know that the E<sub>out-mix</sub> [also measured in Joules per second] is proportional to the temperature difference between box 1 and box 2:</p>
+        <p><img src="assets/img/content/11.png" alt="E_mix = b(T - To)"></p>
+        <p>(where <em>b</em> is a constant)</p>
+        <p>So finally we have:</p>
+        <p><img src="assets/img/content/12.png" alt="Box 1 equation"></p>
+        <h3>Box 2:</h3>
+        <p>Change in energy in box 2 each second = Energy coming in each second (from the bottom of box 1)</p>
+        <p>The energy coming in to box 2 is obviously the same as the energy coming out of the bottom of box 1 (i.e. <em>b(T - T<sub>o</sub>)</em>).</p>
+        <p>So, following similar arguments to box 1 we end up with:</p>
+        <p><img src="assets/img/content/13.png" alt="Box 2 equation"></p>
+        <p>So we have ended up with two equations:</p>
+        <p><img src="assets/img/content/14.png" alt="Two box equations"></p>
+        <p>They tell us that if we know the energy entering the climate system (E<sub>in</sub>), which may change over time, we can calculate how the temperature of the surface climate (i.e. all the components in box 1) and the deep ocean (box 2) change with time.</p>
+        <p>NB we also need to figure out the values for the various constants (C, C<sub>o</sub>, a, b). These can be calculated or figured out by looking at observations of the real world.</p>
+        <h3>How do we get E<sub>in</sub>?</h3>
+        <p>The energy entering the climate system depends on multiple factors. Some of the main ones are:</p>
+        <ul>
+          <li>E<sub>sun</sub>: How much energy comes in from the sun that doesn&rsquo;t get reflected back out to space by clouds or bright surfaces on the planet surface (in particular ice)?</li>
+          <li>E<sub>volcano</sub>: How much of the sun&rsquo;s energy gets reflected away back to space by volcanic aerosols in the atmosphere?</li>
+          <li>E<sub>aerosol</sub>: How much of the sun&rsquo;s energy gets reflected away back to space by human-made aerosols in the atmosphere?</li>
+          <li>E<sub>co2</sub>: How much extra heat is trapped at the surface by CO<sub>2</sub> (greenhouse effect)?</li>
+          <li>E<sub>ch4</sub>: How much extra heat is trapped at the surface by methane (greenhouse effect)?</li>
+        </ul>
+        <p>To get E<sub>in</sub> we need to sum these different components:</p>
+        <p>E<sub>in</sub> = E<sub>sun</sub> + E<sub>volcano</sub> + E<sub>aerosol</sub> + E<sub>co2</sub> + E<sub>ch4</sub></p>
+        <p>Some of these components are hard to measure or estimate directly, so Carbonator uses sub-models (for the carbon cycle and methane) to calculate the CO<sub>2</sub> and CH<sub>4</sub> terms from emissions, while the remaining terms are specified as radiative forcings from the scenario data.</p>
+        <h3>References</h3>
+        <ul>
+          <li>Geoffroy, O., D. Saint-Martin, D. J. L. Olivi&eacute;, A. Voldoire, G. Bellon, and S. Tyt&eacute;ca. &ldquo;Transient Climate Response in a Two-Layer Energy-Balance Model. Part I: Analytical Solution and Parameter Calibration Using CMIP5 AOGCM Experiments.&rdquo; Journal of Climate 26, no. 6 (2013): 1841&ndash;57. <a href="https://doi.org/10.1175/JCLI-D-12-00195.1" target="_blank" rel="noopener">https://doi.org/10.1175/JCLI-D-12-00195.1</a>.</li>
+          <li>Gregory, J. M., J. A. Church, G. J. Boer, K. W. Dixon, G. M. Flato, D. R. Jackett, J. A. Lowe, et al. &ldquo;Comparison of Results from Several AOGCMs for Global and Regional Sea-Level Change 1900&ndash;2100.&rdquo; Climate Dynamics 18, no. 3&ndash;4 (2001): 225&ndash;40. <a href="https://doi.org/10.1007/s003820100180" target="_blank" rel="noopener">https://doi.org/10.1007/s003820100180</a>.</li>
+        </ul>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>What is a model?</h2>
+      <p>A model is a way of understanding complex systems or phenomena. For example, models can be used to help us understand the movement of planets around the sun, or how a disease spreads or how the brain works or how the earth&rsquo;s climate will change in the future.</p>
+      <p>To construct a model you need to identify the essential components of the system or phenomenon you are trying to model and how the components behave and interact. In science you would then often use mathematical equations or computer code to describe these components and interactions.</p>
+      <p>A few examples might make this clearer:</p>
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <p>Imagine a person on a swing. We would like to understand how fast the swing goes, or how often you go back and forth. This could depend on many factors: the size of the person, the design of the swing, the strength of the wind, the friction in the bearings. But the essential components of this system can be modelled as a ball on a weightless string suspended from a pivot with no friction. The ball is pulled downwards by gravity and upwards by the tension in the string. By mathematically describing this highly simplified version of the person on a swing we can get a good idea of how the swing will move (it won&rsquo;t be perfect, because in the real world the swing is affected by other factors &ndash; like friction, but we can still learn a lot from the simple model).</p>
+        <p><img src="assets/img/content/01.png" alt="Pendulum model"></p>
+        <p>Imagine the earth orbiting the sun. We can model this as two balls (one with the mass of the sun, the other with the mass of earth) rotating around each other and kept together by gravitational attraction. Based on experiments we know that the strength of the gravitational attraction is proportional to the masses multiplied together, and inversely proportional to the square of the distance between them. By describing this model mathematically we can figure out approximately how fast the planet orbits and how far the sun and planet must be from each other. However this model is just an approximation of the real world: interactions with other planets will also be important, space-time is distorted by the massive sun and planet which slightly changes how gravity works (general relativity) and even in space there is some friction.</p>
+        <p><img src="assets/img/content/02.png" alt="Orbit model"></p>
+        <p>Finally imagine a burner heating up a beaker of water. We can model this as a box with the same heat capacity as the water and a constant input of heat. Conservation of energy tells us the rate at which the temperature of the box increases must be proportional to the energy coming in (and inversely proportional to the heat capacity of the water i.e. it takes longer to heat more water). In the real world the water will heat at different rates, there will be heat losses from the top of the water and from the sides of the beaker and the heating source won&rsquo;t be perfectly constant, but still our approximation will be able to provide valuable information about how fast the water heats up.</p>
+        <p><img src="assets/img/content/03.png" alt="Heated beaker model"></p>
+        <p>We could improve our final model, by assuming that our box can also lose heat to the surroundings. Let&rsquo;s assume that the rate at which the box loses heat is proportional to the difference between the temperature of the box (T) and the temperature of the surrounding air (T<sub>A</sub>) i.e. the hotter the box gets the more heat it loses.</p>
+        <p><img src="assets/img/content/04.png" alt="Box model with heat loss"></p>
+        <p>This last type of model is referred to as a box model. The box in this case represents the water. But we simplify the situation and assume that the water is a homogenous box with a single temperature and heat capacity. Carbonator is also a box model that works in a similar way to this example.</p>
+      </details>
+
+      <h2>What is a climate model?</h2>
+      <p>A climate model is a simulation of the climate system: the atmosphere, ocean, land surface and cryosphere (ice areas), run on a computer that allows you to tell how important climate variables like temperature, sea level or rainfall change over time at different locations.</p>
+      <p>Everyone has heard of weather forecast models. Climate models are very similar but, while weather forecast models are used to predict how the atmosphere will change over the timescale of a few days, climate models tell us how the climate system is likely to change over decades or centuries. Climate and weather models are usually run on powerful computers; they generate simulations of important climate variables like temperature, sea level or rainfall change over time at different locations.</p>
+      <p>State-of-the-art climate models (there are dozens of them built by different research centres around the world) are made up of thousands of lines of computer code. They require hundreds of people-years to build and take weeks or months to simulate a few decades of climate system evolution on powerful supercomputers (equivalent to 100s or 1000s of personal computers).</p>
+      <p>Here are some YouTube links to some climate model simulations:</p>
+      <p><a href="https://www.youtube.com/watch?v=aX9nHyMP4L0" target="_blank" rel="noopener">NOAA SOS: GFDL Global Sea Surface Temperature Model</a></p>
+      <p><a href="https://www.youtube.com/watch?v=C3yQUaU6fXE" target="_blank" rel="noopener">NOAA Research: Improving the global weather forecast model</a></p>
+      <p><a href="https://www.youtube.com/watch?v=g3mt30cu8l4" target="_blank" rel="noopener">Stop And Think: NASA's Perpetual Ocean, Animation of Surface Ocean Currents</a></p>
+    </div>
+
+    <div class="card">
+      <h2>The models</h2>
+
+      <h3>Carbon Cycle Model</h3>
+      <p>Probably the most complex part of Carbonator is the carbon cycle model. The carbon cycle model takes the CO<sub>2</sub> emissions (one of the model inputs) and calculates the extra energy entering the climate system due to CO<sub>2</sub> and the enhanced greenhouse effect.</p>
+      <p>CO<sub>2</sub> is the most important greenhouse gas that is affected by humans. Increases in atmospheric CO<sub>2</sub> (measured in parts per million by volume, ppm) since pre-industrial times are primarily from the burning of fossil fuels and from deforestation. CO<sub>2</sub> emitted by human activity (expressed in GtC/yr) accumulates in the atmosphere but is also removed from the atmosphere by plants and dissolved in ocean water.</p>
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <p>The energy balance model used by Carbonator is split into two boxes that represent the energy stored in the surface climate and the deep ocean. The carbon cycle model is comprised of 5 boxes, representing the carbon stored in the atmosphere (as CO<sub>2</sub>), the upper ocean, the deep ocean, vegetation and soil.</p>
+        <p><img src="assets/img/content/15.png" alt="Carbon cycle schematic"></p>
+        <p>Carbon dioxide emissions (E<sup>co2</sup>) enter the atmosphere, increasing the total amount of atmospheric carbon (C<sup>at</sup>). This carbon leaves the atmosphere by dissolving into the upper ocean (C<sup>up</sup>) and being taken up by plants (N) by photosynthesis.</p>
+        <p>The rate of transfer of carbon into the ocean is proportional to the difference between atmospheric and oceanic CO<sub>2</sub> concentration. This rate also depends on the acidity of the ocean, which changes depending on the amount of stored carbon. Carbon can leave the upper ocean by mixing into the deep ocean.</p>
+        <p>The uptake of carbon by plants via photosynthesis depends on the atmospheric CO<sub>2</sub> concentration. The carbon in plants turns into soil carbon over long timescales as vegetation decays. Some of the carbon in the soil eventually gets back into the atmosphere via its breakdown by bacteria.</p>
+        <p>These interactions are written down mathematically below:</p>
+        <p><img src="assets/img/content/16.png" alt="Carbon cycle equations"></p>
+        <p>where C<sup>at</sup>, C<sup>up</sup>, C<sup>lo</sup>, N and S are the inventories of carbon dioxide (GtC) in the atmosphere, upper ocean and deep ocean, terrestrial vegetation and soil, respectively, P is net primary production by terrestrial plants (GtC/yr) and E is the human emissions of CO<sub>2</sub> (GtC/yr).</p>
+        <p>If we specify emissions of CO<sub>2</sub>, these equations can tell us how the atmospheric concentration of CO<sub>2</sub> changes over time. CO<sub>2</sub> is a greenhouse gas which acts to trap heat emitted from the surface of the planet. More CO<sub>2</sub> means that a greater amount of heat is trapped and the more energy is retained by the surface climate. This can be expressed mathematically as:</p>
+        <p><img src="assets/img/content/17.png" alt="CO2 forcing equation"></p>
+        <p>Where C<sub>o</sub><sup>CO2</sup> is the natural atmospheric concentration before humans started emitting CO<sub>2</sub> into the atmosphere.</p>
+        <p>This relationship is logarithmic. This means that CO<sub>2</sub> traps less heat as CO<sub>2</sub> concentrations increase.</p>
+        <h3>References</h3>
+        <ul>
+          <li>Glotter, Michael J., Raymond T. Pierrehumbert, Joshua W. Elliott, Nathan J. Matteson, and Elisabeth J. Moyer. &ldquo;A Simple Carbon Cycle Representation for Economic and Policy Analyses.&rdquo; Climatic Change 126, no. 3&ndash;4 (2014): 319&ndash;35. <a href="https://doi.org/10.1007/s10584-014-1224-y" target="_blank" rel="noopener">https://doi.org/10.1007/s10584-014-1224-y</a>.</li>
+        </ul>
+      </details>
+
+      <h3>Methane Model</h3>
+      <p>CO<sub>2</sub> is a long lived greenhouse gas that takes hundreds of years to be removed from the atmosphere. As a result CO<sub>2</sub> emitted today will still have an effect on the climate system hundreds of years from now (see the CO<sub>2</sub> pulse experiment). Other greenhouse gases remain in the atmosphere for far shorter periods of time. The second most important greenhouse gas related to human activities is methane. Methane emissions are primarily related to waste management, changes in agriculture and the production of fossil fuels. The main way methane is removed from the atmosphere is through oxidation. Methane will typically last about 10 years in the atmosphere; as a result if we stopped producing methane today it would return to background concentrations in a few decades (see the CH<sub>4</sub> pulse experiment).</p>
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <p>Methane is modelled using a single box that represents the atmospheric store of methane. Methane emissions (E<sup>CH4</sup>) increase the methane concentration (C<sup>CH4</sup>) and the concentration decreases due to oxidation (in fact the rate of decay (&tau;<sup>CH4</sup>) is not exactly exponential as it depends on the amount of methane in the atmosphere). The equation describing methane concentration in Carbonator is:</p>
+        <p><img src="assets/img/content/18.png" alt="Methane equation"></p>
+        <p>If we specify emissions of CH<sub>4</sub>, this equation can tell us how CH<sub>4</sub> concentrations change in the atmosphere over time. CH<sub>4</sub> is a greenhouse gas which acts to trap heat emitted from the surface of the planet. More CH<sub>4</sub> means that a greater amount of heat is trapped and the more energy is retained by the surface climate. This can be expressed mathematically as:</p>
+        <p><img src="assets/img/content/19.png" alt="Methane forcing equation"></p>
+        <p>Where C<sub>o</sub><sup>CH4</sup> is the natural atmospheric concentration before humans started emitting CH<sub>4</sub> into the atmosphere.</p>
+        <p>As with CO<sub>2</sub>, this relationship is logarithmic. This means that CH<sub>4</sub> has a diminishing effect on the additional energy as CH<sub>4</sub> concentrations increase.</p>
+        <h3>References</h3>
+        <ul>
+          <li>Boucher, Olivier, Pierre Friedlingstein, Bill Collins, and Keith P. Shine. &ldquo;The Indirect Global Warming Potential and Global Temperature Change Potential Due to Methane Oxidation.&rdquo; Environmental Research Letters 4, no. 4 (2009): 044007. <a href="https://doi.org/10.1088/1748-9326/4/4/044007" target="_blank" rel="noopener">https://doi.org/10.1088/1748-9326/4/4/044007</a>.</li>
+        </ul>
+      </details>
+
+      <h3>Volcanic Aerosols</h3>
+      <p>Volcanoes inject large quantities of particulate matter (aerosols) high into the atmosphere (the stratosphere). These fall out of the atmosphere over the course of a few years. These particles are reflective, reflecting away solar energy. As a result, they have a cooling effect. In Carbonator&nbsp;2 volcanic aerosols are specified directly as a radiative forcing time series (W/m²), which you can edit in Advanced mode.</p>
+
+      <h3>Human Aerosols</h3>
+      <p>Burning of fossil fuels and deforestation releases particulate matter (human aerosols) into the lower atmosphere. These particles are washed out of the atmosphere on the timescale of a few days, primarily by rainfall. Like volcanic aerosols, human aerosols reflect away solar energy and so have a cooling effect. Because the removal of human aerosols from the atmosphere is so fast, the aerosol forcing closely follows the emission rate: if you stop emissions, the cooling effect disappears almost instantly (see the Geoengineering Failure experiment). In Carbonator&nbsp;2 human aerosols are specified as a radiative forcing time series (W/m²).</p>
+
+      <h3>Sea-level Model</h3>
+      <p>The primary causes of sea level rise are the thermal expansion of water (the volume of water increases if temperature increases) and the melting of land ice (primarily the ice sheets on Antarctica and Greenland and glaciers around the world). Carbonator models both contributions.</p>
+
+      <h3>Solving the Equations</h3>
+      <p>To use the model, your computer needs to solve the various equations that make up the Carbonator climate model. To demonstrate how this works, click below.</p>
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <p>To demonstrate how this works, let&rsquo;s use a simpler model: a single box model of the climate system. In this case, we are going to ignore the effect of the deep ocean (i.e. we assume that no heat is transferred from the upper to the lower ocean). Also instead of having several inputs, our input is going to be the total incoming energy (E<sub>in</sub>), so that we don&rsquo;t need to worry about the CO<sub>2</sub>, methane and other sub-models. Mathematically our model can be written:</p>
+        <p><img src="assets/img/content/22.png" alt="Single box equation"></p>
+        <p>This says, the change in the energy content in our box (which represents the climate system) per second equals the energy coming in per second (the model input) minus the energy emitted out to space per second (which depends on the surface temperature). C and a are constants.</p>
+        <p>Using this equation, if we know E<sub>in</sub>, we want to be able to calculate how the surface temperature changes in time. This means that we need to integrate this equation to find T at different times.</p>
+        <p>If E<sub>in</sub> could be described as a simple mathematical function we could probably integrate the equation analytically. For example if E<sub>in</sub> were a constant (i.e. incoming energy stays the same over time), then:</p>
+        <p><img src="assets/img/content/23.png" alt="Analytic solution"></p>
+        <p>We also need to know the temperature at the start of our simulation T(0). For all Carbonator simulations we calculate temperature relative to the start of the simulation, so T(0)&nbsp;=&nbsp;0. Substituting this into the equation:</p>
+        <p><img src="assets/img/content/24.png" alt="Solution with initial condition"></p>
+        <p>And substituting back for c<sub>1</sub>:</p>
+        <p><img src="assets/img/content/25.png" alt="Full solution"></p>
+        <p>As an example, if we use the Carbonator values a&nbsp;=&nbsp;1 W/m²/K, C&nbsp;=&nbsp;6 W&nbsp;yr/m²/K, and there is a sudden jump in the energy coming in (e.g. the sun gets a little bit stronger), E<sub>in</sub>&nbsp;=&nbsp;1 W/m², then the temperature response will be:</p>
+        <p><img src="assets/img/content/26.png" alt="Step response"></p>
+        <p>However, E<sub>in</sub> may change with time, i.e.:</p>
+        <p><img src="assets/img/content/27.png" alt="Time varying input"></p>
+        <p>For example, imagine that over time the sun gets stronger, increasing the incoming energy, but during this period there is a volcano that causes a decrease in the incoming energy (through reflection) for a short period:</p>
+        <p><img src="assets/img/content/28.png" alt="Complex forcing"></p>
+        <p>Now we can&rsquo;t integrate this in the normal way. Instead we do what&rsquo;s called a numerical integration. This only provides an approximate answer, but if we do it right then the approximation can be as accurate as we want it to be. So how does this work?</p>
+        <p>Let&rsquo;s start with dT/dt, what does this mean? It&rsquo;s the gradient in T with respect to time. Let&rsquo;s look at this on a graph of temperature versus time:</p>
+        <p><img src="assets/img/content/29.png" alt="Gradient on a curve"></p>
+        <p>The gradient dT/dt at time t is the tangent to the line. How do we calculate the value of the gradient? We can get an approximate answer by calculating:</p>
+        <p><img src="assets/img/content/30.png" alt="Finite difference"></p>
+        <p>To make this approximation better you just need to make the step smaller. In fact if the step shrinks to zero then the answer is exact (this is the basis of calculus). OK, let&rsquo;s stick with our approximation:</p>
+        <p><img src="assets/img/content/33.png" alt="Finite difference approximation"></p>
+        <p>Let&rsquo;s substitute this into our model equation:</p>
+        <p><img src="assets/img/content/34.png" alt="Discretised equation"></p>
+        <p>A little rearranging and we get:</p>
+        <p><img src="assets/img/content/35.png" alt="Update equation"></p>
+        <p>What does this equation say? Let&rsquo;s imagine t is the time now. The equation says if we know what the temperature is now and how much energy is entering the climate system now, we can estimate what the temperature will be a little way in the future.</p>
+        <p>Using our estimate for the temperature a little way into the future we can use the same equation to estimate the temperature a little further in the future. By using this equation multiple times we can estimate the temperature progressively further into the future. If the (time) steps that we use to make these calculations are not too large, our answer can be quite accurate.</p>
+        <p>We can now use computer code to do this calculation multiple times. In fact we can even run this model in an <a href="assets/pdfs/excel_model.xlsx">Excel spreadsheet</a>. Check this out to see how temperature changes in response to the E<sub>in</sub> shown above; or modify E<sub>in</sub> to create your own scenario.</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Terminology</h2>
+      <ul>
+        <li><strong>Radiative forcing</strong> &ndash; the change in energy entering the climate system resulting from a change in greenhouse gas concentration, aerosol concentration or changes in solar radiation. Measured in Joules per second per square metre (or W/m²).</li>
+        <li><strong>W/m²</strong>: Units for energy flux, number of joules of energy hitting 1 metre square every second. E.g. if all the energy from a 10W light bulb were focused onto a piece of ground 1m &times; 1m the energy flux would be 10&nbsp;W/m². On average the earth receives about 340&nbsp;W/m² from the sun.</li>
+        <li><strong>GtC/yr</strong> &ndash; Gigatonnes (billions of tonnes) of carbon per year. Also written PgC/yr (petagrams): one Pg = 10<sup>15</sup> grams.</li>
+        <li><strong>Greenhouse gas:</strong> A type of gas that allows the passage of sunlight (shortwave radiation) but absorbs heat energy (longwave radiation). The two most important greenhouse gases controlling climate change are carbon dioxide and methane. Others include nitrous oxide and ozone. While water vapour is also a very important greenhouse gas, humans can&rsquo;t directly affect its concentration.</li>
+        <li><strong>Geoengineering</strong>: Technological solution to avoid the effects of global warming. One proposed scheme is Solar Radiation Management (SRM) whereby the amount of solar energy reaching the planet is reduced. This may be done for example by continuously pumping aerosols into the upper atmosphere (the particles reflect away incoming solar energy). Another possible option would be to place orbiting sun shades around the planet to block some of the sun&rsquo;s energy.</li>
+        <li><strong>Forcing</strong>: any factor that affects global temperatures and the climate system in general. In the model we have control over the following forcings:
+          <ul>
+            <li><strong>Carbon dioxide CO<sub>2</sub></strong>: the most important greenhouse gas, primarily produced by the burning of fossil fuels and to a lesser extent deforestation. Long lifetime in the atmosphere (centuries).</li>
+            <li><strong>Methane CH<sub>4</sub></strong>: an important greenhouse gas produced by agricultural processes and waste disposal. Short lifetime in the atmosphere (~10 years).</li>
+            <li><strong>Aerosols</strong>: particulate matter produced by the burning of fossil fuel, forest fires and volcanoes. Particles reflect away incoming solar energy (i.e. have a cooling effect on the planet). Very short lifetime in the lower atmosphere (~days).</li>
+            <li><strong>Volcanic aerosols</strong>: produced during large volcanic eruptions; last a few years in the stratosphere.</li>
+            <li><strong>Solar radiation</strong>: energy coming from the sun (also termed shortwave radiation).</li>
+          </ul>
+        </li>
+        <li><strong>Climate system:</strong> The thin sliver at the surface of the earth made up of the atmosphere, the ocean, the cryosphere (ice sheets and glaciers) and the land surface.</li>
+        <li><strong>Greenhouse effect</strong>: energy from the sun (shortwave radiation) warms the earth surface. The warm earth radiates heat energy (longwave radiation) outwards. Greenhouse gases absorb much of this outgoing heat and re-radiate it in all directions (both upwards and downwards). The downwards directed energy represents an additional source of incoming heat energy that also warms the surface. This additional warming is the greenhouse effect. Adding additional greenhouse gases to the atmosphere will increase the greenhouse effect.</li>
+        <li><strong>Longwave radiation</strong>: also called infrared radiation or heat energy. This is the type of energy radiated by the earth&rsquo;s surface and the atmosphere. Longwave radiation is absorbed by greenhouse gases.</li>
+        <li><strong>Shortwave radiation</strong>: also called solar radiation (largely visible and ultraviolet light). This is the type of energy radiated by the sun. Shortwave radiation is not absorbed by greenhouse gases.</li>
+        <li><strong>Feedback</strong>: if a forcing causes a warming of the earth&rsquo;s surface, feedback processes can act to amplify or suppress the initial warming. Many different positive and negative feedback processes operate in the climate system. If the atmosphere warms it absorbs more water vapour from the ocean. But water vapour is a greenhouse gas, so more of it increases the greenhouse effect causing additional warming: the positive &lsquo;water vapour&rsquo; feedback. If a forcing acts to warm the earth&rsquo;s surface, the surface will radiate more heat energy away, ultimately stopping the warming: the negative &lsquo;blackbody&rsquo; feedback.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="thanks">
+      <span>Our thanks to:</span>
+      <a href="https://www.unsw.edu.au/" target="_blank" rel="noopener"><img src="assets/img/logo_unsw.png" alt="University of New South Wales"></a>
+      <a href="http://www.ccrc.unsw.edu.au/" target="_blank" rel="noopener"><img src="assets/img/logo_ccrc.png" alt="Climate Change Research Centre"></a>
+      <a href="https://www.climatescience.org.au/" target="_blank" rel="noopener"><img src="assets/img/logo_arccss.png" alt="ARC Centre of Excellence for Climate System Science"></a>
+    </div>
+    <a href="https://creativecommons.org/licenses/by-nc-sa/2.0/au/" target="_blank" rel="noopener"><img src="assets/img/logo_cc_byncsa.png" alt="Creative Commons: BY-NC-SA"></a>
+  </footer>
+</body>
+</html>

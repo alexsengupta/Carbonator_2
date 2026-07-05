@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Carbonator 2 — SSP climate teaching tool</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo"><span>CARB</span><span class="onator">ONATOR</span></div>
+      <div class="tag">SSP teaching tool</div>
+    </div>
+
+    <div class="top-center">
+      <div class="modeToggle" aria-label="Mode selector">
+        <span class="lbl">Mode:</span>
+        <button class="modeBtn" id="modeBasic" type="button" title="Basic mode: view scenario inputs and run the model (no curve or parameter editing).">Basic</button>
+        <button class="modeBtn" id="modeAdvanced" type="button" title="Advanced mode: edit inputs (spline curves), explore parameter settings, and add internal variability.">Advanced</button>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <button id="btnHomeTop" title="Home">Home</button>
+      <button id="btnAboutTop" title="About this tool">About</button>
+      <a href="explained.html" title="How the model works">Explained</a>
+      <a href="faqs.html" title="Frequently asked questions">FAQs</a>
+      <a href="schools.html" title="Resources for schools">Schools</a>
+      <a href="team.html" title="Meet the team">Team</a>
+    </div>
+  </div>
+
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="side-h">Select Scenario:</div>
+      <div id="sidebarList"></div>
+    </aside>
+
+    <main class="main">
+      <!-- HOME VIEW -->
+      <section id="viewHome">
+        <div class="welcome">
+          <h1>Welcome to SSP Carbonator</h1>
+          <p>
+            Explore how different SSP pathways change global temperature, greenhouse gases and ocean chemistry,
+            using a simplified two-layer energy-balance model coupled to a simple carbon-cycle and methane lifetime model.
+            Choose a scenario on the left (or below) to begin.
+          </p>
+          <div class="cta-row">
+            <button class="btn orange" id="btnStartDefault">Start with SSP2-4.5</button>
+            <button class="btn" id="btnOpenInputsCSV">Download input data (CSV)</button>
+          </div>
+        </div>
+
+        <div class="info-bar">
+          <div class="info-dot">i</div>
+          <div>Select a scenario to begin. Use <b>Advanced</b> mode to edit parameters or input curves.</div>
+        </div>
+
+        <div class="scenario-grid" id="homeScenarioGrid"></div>
+        <div class="footnote">
+          Baseline is <b>1850</b> (forcing and temperature anomalies). This tool is deterministic and intended for classroom exploration.
+        </div>
+
+        <div class="site-footer">
+          <div class="site-footer-thanks">
+            <span>Our thanks to:</span>
+            <a href="https://www.unsw.edu.au/" target="_blank" rel="noopener"><img src="assets/img/logo_unsw.png" alt="University of New South Wales"></a>
+            <a href="http://www.ccrc.unsw.edu.au/" target="_blank" rel="noopener"><img src="assets/img/logo_ccrc.png" alt="Climate Change Research Centre"></a>
+            <a href="https://www.climatescience.org.au/" target="_blank" rel="noopener"><img src="assets/img/logo_arccss.png" alt="ARC Centre of Excellence for Climate System Science"></a>
+          </div>
+          <a href="https://creativecommons.org/licenses/by-nc-sa/2.0/au/" target="_blank" rel="noopener"><img src="assets/img/logo_cc_byncsa.png" alt="Creative Commons: BY-NC-SA"></a>
+        </div>
+      </section>
+
+      <!-- SCENARIO VIEW -->
+      <section id="viewScenario" style="display:none;">
+        <div class="scenario-bar" id="scenarioBar"></div>
+
+        <div class="scenario-header">
+          <div class="thumb" aria-hidden="true"></div>
+          <div class="desc">
+            <div class="name" id="scenarioName"></div>
+            <div class="range" id="scenarioRange">View: 1850 – 2100</div>
+            <div class="blurb" id="scenarioBlurb"></div>
+          </div>
+
+          <div class="actions">
+            <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap;">
+              <button class="btn" id="btnReset">Reset scenario</button>
+              <button class="btn orange" id="btnRun">Run scenario</button>
+              <button class="btn orange" id="btnContinue" style="display:none;">Continue editing</button>
+            </div>
+
+            <div class="smallpanel">
+              <div class="label">Controls</div>
+              <div class="hint" id="controlsHint">Toggle inputs on/off, then run the model.</div>
+              <div class="toggle-row" style="margin-top:10px;" title="Adds ENSO-like year-to-year variability using an energy-conserving stochastic heat exchange (tunable in Advanced parameters).">
+                <label class="switch">
+                  <input type="checkbox" id="togIV" />
+                  <span class="slider"></span>
+                </label>
+                <div>Internal variability</div>
+                <div class="state" id="stateIV">OFF</div>
+              </div>
+              <div class="toggle-row advOnly" style="margin-top:6px;">
+                <button class="btn" id="btnIVRandom" type="button" style="padding:4px 8px; font-size:11px;" title="Generate a new random realisation (new seed)">Randomise</button>
+                <div style="font-size:11px; color:#666;">Seed: <span id="ivSeedVal">1</span></div>
+              </div>
+
+              <div class="advOnly" id="viewRangeBox" style="margin-top:10px; padding-top:10px; border-top:1px dashed rgba(0,0,0,0.12);">
+                <div style="font-weight:700; font-size:11px; margin-bottom:6px;">View window</div>
+                <div style="font-size:11px; color:#666; margin-bottom:6px;">Display: <span id="viewRangeLabel">1850–2100</span></div>
+                <div class="viewGrid">
+                  <div>
+                    <div style="display:flex; justify-content:space-between; font-size:11px; color:#666;">
+                      <span>Start</span><span id="viewStartVal">1850</span>
+                    </div>
+                    <input type="range" id="viewStart" min="1850" max="2100" step="1" value="1850" />
+                  </div>
+                  <div>
+                    <div style="display:flex; justify-content:space-between; font-size:11px; color:#666;">
+                      <span>End</span><span id="viewEndVal">2100</span>
+                    </div>
+                    <input type="range" id="viewEnd" min="1850" max="2100" step="1" value="2100" />
+                  </div>
+                  <button class="btn" id="btnViewFull" type="button" style="padding:4px 8px; font-size:11px; grid-column: 1 / -1;">Full range</button>
+                </div>
+              </div>
+
+              <div class="panel-actions">
+                <button class="btn advOnly" id="btnParams" title="Edit model parameters (energy balance, carbon cycle, methane, sea level, internal variability).">Edit parameters</button>
+                <button class="btn" id="btnViewData" title="View input data table for this scenario (including any edits).">Input table</button>
+                <button class="btn" id="btnDownloadScenarioCSV" title="Download the scenario input time series as a CSV file.">Save inputs CSV</button>
+                <button class="btn" id="btnExportOutput" disabled title="Download model outputs as a CSV file (available after running).">Export outputs CSV</button>
+              </div>
+              <div style="margin-top:10px; font-size:11px; color:#666;">
+                <span id="modeBadge" class="badge">BASIC MODE</span>
+                <span id="editBadge" style="margin-left:6px;"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-bar" id="editInfoBar">
+          <div class="info-dot">i</div>
+          <div>Review inputs below, then click <b>Run scenario</b> to view outputs.</div>
+        </div>
+
+        <!-- EDIT MODE INPUT PLOTS -->
+        <div id="editMode">
+          <!-- CO2 -->
+          <div class="plot-card">
+            <div class="plot-row">
+              <div class="plot-left">
+                <div class="title">CO₂ Emissions</div>
+                <div class="subtitle">Anthropogenic emissions of carbon dioxide (GtC per year).</div>
+                <div class="toggle-row">
+                  <label class="switch">
+                    <input type="checkbox" id="togCO2" checked />
+                    <span class="slider"></span>
+                  </label>
+                  <div>Enable</div>
+                  <div class="state" id="stateCO2">ON</div>
+                </div>
+                <div class="toggle-row advOnly" style="margin-top:8px;">
+                  <button class="btn" type="button" data-edit="E_CO2_GtC_yr">Edit curve…</button>
+                  <span class="badge" id="badge_E_CO2_GtC_yr" style="display:none;">EDITED</span>
+                </div>
+              </div>
+              <div class="plot-right">
+                <canvas id="plotInCO2" data-height="240"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- CH4 -->
+          <div class="plot-card">
+            <div class="plot-row">
+              <div class="plot-left">
+                <div class="title">CH₄ Emissions</div>
+                <div class="subtitle">Anthropogenic emissions of methane (Tg CH₄ per year).</div>
+                <div class="toggle-row">
+                  <label class="switch">
+                    <input type="checkbox" id="togCH4" checked />
+                    <span class="slider"></span>
+                  </label>
+                  <div>Enable</div>
+                  <div class="state" id="stateCH4">ON</div>
+                </div>
+                <div class="toggle-row advOnly" style="margin-top:8px;">
+                  <button class="btn" type="button" data-edit="E_CH4_TgCH4_yr">Edit curve…</button>
+                  <span class="badge" id="badge_E_CH4_TgCH4_yr" style="display:none;">EDITED</span>
+                </div>
+              </div>
+              <div class="plot-right">
+                <canvas id="plotInCH4" data-height="240"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Aerosol -->
+          <div class="plot-card">
+            <div class="plot-row">
+              <div class="plot-left">
+                <div class="title">Aerosol ERF</div>
+                <div class="subtitle">Effective radiative forcing from anthropogenic aerosols (W m⁻²).</div>
+                <div class="toggle-row">
+                  <label class="switch">
+                    <input type="checkbox" id="togAER" checked />
+                    <span class="slider"></span>
+                  </label>
+                  <div>Enable</div>
+                  <div class="state" id="stateAER">ON</div>
+                </div>
+                <div class="toggle-row advOnly" style="margin-top:8px;">
+                  <button class="btn" type="button" data-edit="ERF_aerosol_rel1850_Wm2">Edit curve…</button>
+                  <span class="badge" id="badge_ERF_aerosol_rel1850_Wm2" style="display:none;">EDITED</span>
+                </div>
+              </div>
+              <div class="plot-right">
+                <canvas id="plotInAER" data-height="240"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ozone -->
+          <div class="plot-card">
+            <div class="plot-row">
+              <div class="plot-left">
+                <div class="title">Ozone ERF</div>
+                <div class="subtitle">Effective radiative forcing from ozone (W m⁻²).</div>
+                <div class="toggle-row">
+                  <label class="switch">
+                    <input type="checkbox" id="togO3" checked />
+                    <span class="slider"></span>
+                  </label>
+                  <div>Enable</div>
+                  <div class="state" id="stateO3">ON</div>
+                </div>
+                <div class="toggle-row advOnly" style="margin-top:8px;">
+                  <button class="btn" type="button" data-edit="ERF_o3_total_rel1850_Wm2">Edit curve…</button>
+                  <span class="badge" id="badge_ERF_o3_total_rel1850_Wm2" style="display:none;">EDITED</span>
+                </div>
+              </div>
+              <div class="plot-right">
+                <canvas id="plotInO3" data-height="240"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- N2O -->
+          <div class="plot-card">
+            <div class="plot-row">
+              <div class="plot-left">
+                <div class="title">N₂O ERF</div>
+                <div class="subtitle">Effective radiative forcing from nitrous oxide (W m⁻²).</div>
+                <div class="toggle-row">
+                  <label class="switch">
+                    <input type="checkbox" id="togN2O" checked />
+                    <span class="slider"></span>
+                  </label>
+                  <div>Enable</div>
+                  <div class="state" id="stateN2O">ON</div>
+                </div>
+                <div class="toggle-row advOnly" style="margin-top:8px;">
+                  <button class="btn" type="button" data-edit="ERF_N2O_rel1850_Wm2">Edit curve…</button>
+                  <span class="badge" id="badge_ERF_N2O_rel1850_Wm2" style="display:none;">EDITED</span>
+                </div>
+              </div>
+              <div class="plot-right">
+                <canvas id="plotInN2O" data-height="240"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Other WMGHG -->
+          <div class="plot-card">
+            <div class="plot-row">
+              <div class="plot-left">
+                <div class="title">Other WMGHG ERF</div>
+                <div class="subtitle">Effective radiative forcing from other well-mixed greenhouse gases (W m⁻²).</div>
+                <div class="toggle-row">
+                  <label class="switch">
+                    <input type="checkbox" id="togOTHER" checked />
+                    <span class="slider"></span>
+                  </label>
+                  <div>Enable</div>
+                  <div class="state" id="stateOTHER">ON</div>
+                </div>
+                <div class="toggle-row advOnly" style="margin-top:8px;">
+                  <button class="btn" type="button" data-edit="ERF_otherWMGHG_rel1850_Wm2">Edit curve…</button>
+                  <span class="badge" id="badge_ERF_otherWMGHG_rel1850_Wm2" style="display:none;">EDITED</span>
+                </div>
+              </div>
+              <div class="plot-right">
+                <canvas id="plotInOTHER" data-height="240"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Volcanic -->
+          <div class="plot-card">
+            <div class="plot-row">
+              <div class="plot-left">
+                <div class="title">Volcanic ERF</div>
+                <div class="subtitle">Natural forcing from volcanic aerosols (W m⁻²).</div>
+                <div class="toggle-row">
+                  <label class="switch">
+                    <input type="checkbox" id="togVOLC" checked />
+                    <span class="slider"></span>
+                  </label>
+                  <div>Enable</div>
+                  <div class="state" id="stateVOLC">ON</div>
+                </div>
+                <div class="toggle-row advOnly" style="margin-top:8px;">
+                  <button class="btn" type="button" data-edit="ERF_volcanic_rel1850_Wm2">Edit curve…</button>
+                  <span class="badge" id="badge_ERF_volcanic_rel1850_Wm2" style="display:none;">EDITED</span>
+                </div>
+              </div>
+              <div class="plot-right">
+                <canvas id="plotInVOLC" data-height="240"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Solar -->
+          <div class="plot-card">
+            <div class="plot-row">
+              <div class="plot-left">
+                <div class="title">Solar ERF</div>
+                <div class="subtitle">Natural forcing from solar variability (W m⁻²).</div>
+                <div class="toggle-row">
+                  <label class="switch">
+                    <input type="checkbox" id="togSOLAR" checked />
+                    <span class="slider"></span>
+                  </label>
+                  <div>Enable</div>
+                  <div class="state" id="stateSOLAR">ON</div>
+                </div>
+                <div class="toggle-row advOnly" style="margin-top:8px;">
+                  <button class="btn" type="button" data-edit="ERF_solar_rel1850_Wm2">Edit curve…</button>
+                  <span class="badge" id="badge_ERF_solar_rel1850_Wm2" style="display:none;">EDITED</span>
+                </div>
+              </div>
+              <div class="plot-right">
+                <canvas id="plotInSOLAR" data-height="240"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="footnote">
+            Tip: try disabling aerosols to see the “unmasking” effect; or disable CH₄ to see its fast impact on forcing.
+          </div>
+        </div>
+
+        <!-- OUTPUT MODE -->
+        <div id="outputMode" style="display:none;">
+          <div class="output-top">
+            <div style="font-size:12px; font-weight:700; color:#2b2b2b;">Outputs:</div>
+            <div class="outToggleBar">
+              <label title="Sea level rise components">
+                <input type="checkbox" id="outSeaLevel" />
+                Sea level
+              </label>
+              <label title="Atmospheric concentrations">
+                <input type="checkbox" id="outConc" />
+                Concentrations
+              </label>
+              <label title="Carbon reservoirs in the carbon-cycle model">
+                <input type="checkbox" id="outCarbon" />
+                Carbon stocks
+              </label>
+              <label title="Surface-ocean pH">
+                <input type="checkbox" id="outPH" />
+                pH
+              </label>
+              <label title="Effective radiative forcing components">
+                <input type="checkbox" id="outF" />
+                Forcings
+              </label>
+              <label title="Local projections using pattern scaling (teaching approximation)">
+                <input type="checkbox" id="outLocal" />
+                Local patterns
+              </label>
+            </div>
+          </div>
+
+          <div class="split-head">
+            <div class="hcell">Inputs:</div>
+            <div class="hcell">Outputs:</div>
+          </div>
+
+          <div class="split">
+            <div>
+              <div class="mini-block">
+                <div class="mini-title">CO₂ emissions</div>
+                <canvas id="miniCO2" data-height="110"></canvas>
+              </div>
+              <div class="mini-block">
+                <div class="mini-title">CH₄ emissions</div>
+                <canvas id="miniCH4" data-height="110"></canvas>
+              </div>
+              <div class="mini-block">
+                <div class="mini-title">Aerosol ERF</div>
+                <canvas id="miniAER" data-height="110"></canvas>
+              </div>
+              <div class="mini-block">
+                <div class="mini-title">Ozone ERF</div>
+                <canvas id="miniO3" data-height="110"></canvas>
+              </div>
+              <div class="mini-block">
+                <div class="mini-title">N₂O ERF</div>
+                <canvas id="miniN2O" data-height="110"></canvas>
+              </div>
+              <div class="mini-block">
+                <div class="mini-title">Other WMGHG ERF</div>
+                <canvas id="miniOTHER" data-height="110"></canvas>
+              </div>
+              <div class="mini-block">
+                <div class="mini-title">Volcanic ERF</div>
+                <canvas id="miniVOLC" data-height="110"></canvas>
+              </div>
+              <div class="mini-block">
+                <div class="mini-title">Solar ERF</div>
+                <canvas id="miniSOLAR" data-height="110"></canvas>
+              </div>
+            </div>
+
+            <div>
+              <div class="out-block" id="blockTemp">
+                <div class="out-title">Temperature</div>
+                <div class="out-sub">Global-mean surface temperature change (relative to 1850–1900), plus deep-ocean temperature in the two-layer model.</div>
+                <div class="chartBox resizable"><canvas id="plotOutTemp" data-height="260" class="autoHeight"></canvas></div>
+
+                <div class="advOnly" style="margin-top:10px;">
+                  <details class="compare" id="compareBox">
+                    <summary>Compare with observations / CMIP6</summary>
+                    <div class="compareGrid">
+                      <div>
+                        <div class="compareTitle">Observations (annual)</div>
+                        <label><input type="checkbox" id="cmpHadCRUT" /> HadCRUT5</label>
+                        <label><input type="checkbox" id="cmpGISTEMP" /> GISTEMP</label>
+                        <label><input type="checkbox" id="cmpBerkeley" /> Berkeley Earth</label>
+                      </div>
+                      <div>
+                        <div class="compareTitle">CMIP6 (annual, global mean)</div>
+                        <label title="Multi-model mean and 5–95% range for the selected SSP (annual global mean surface temperature)."><input type="checkbox" id="cmpCMIP" /> CMIP6 mean + 5–95% range</label>
+                      </div>
+                    </div>
+                    <div class="compareNote">All comparison series are shown as temperature anomalies relative to 1850–1900. (GISTEMP is shifted to match HadCRUT5 over 1880–1900.)</div>
+                  </details>
+                </div>
+              </div>
+
+              
+              <div class="out-block" id="blockLocal" style="display:none;">
+                <div class="out-block-head">
+                  <div class="out-title">Local projections</div>
+                  <div class="out-sub">Pattern scaling: local changes estimated by scaling a 1° gridded pattern with the modelled global mean temperature.</div>
+                </div>
+
+                <div class="localWrap">
+                  <div class="localSide">
+                    <div class="localCard">
+                      <div class="small muted" style="margin-bottom:6px;">Location (click on map or type)</div>
+                      <div class="localRow">
+                        <label class="inlineField">Lat
+                          <input type="number" id="locLat" step="0.5" min="-90" max="90" />
+                        </label>
+                        <label class="inlineField">Lon
+                          <input type="number" id="locLon" step="0.5" min="-180" max="180" />
+                        </label>
+                      </div>
+                      <div class="localRow" style="margin-top:8px;">
+                        <label class="inlineField" style="width:100%;">Map
+                          <select id="mapVar" style="width:100%;">
+                            <option value="tas">Temperature amplification (°C/°C)</option>
+                            <option value="pr">Precip change (%/°C)</option>
+                          </select>
+                        </label>
+                      </div>
+
+                      <canvas id="mapCanvas" class="mapCanvas" width="360" height="180" aria-label="Pattern map"></canvas>
+                      <div class="legendRow" id="mapLegend"></div>
+                      <div class="small muted" id="patternSourceNote"></div>
+                    </div>
+                  </div>
+
+                  <div class="localMain">
+                    <div class="chartBox resizable" data-height="260">
+                      <canvas id="plotLocalTas"></canvas>
+                    </div>
+                    <div class="chartBox resizable" data-height="260">
+                      <canvas id="plotLocalPr"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="out-block" id="blockSeaLevel" style="display:none;">
+                <div class="out-title">Sea level rise</div>
+                <div class="out-sub">Semi-empirical sea level model with thermal expansion + land-ice contributions (relative to 1850).</div>
+                <div class="chartBox resizable"><canvas id="plotOutSL" data-height="260" class="autoHeight"></canvas></div>
+              </div>
+
+                            <div class="out-block" id="blockConc" style="display:none;">
+                <div class="out-title">Atmospheric concentrations</div>
+                <div class="out-sub">CO₂ and CH₄ are modelled directly. N₂O and other WMGHG are shown as “implied” concentrations from the simplified forcing fits (teaching display).</div>
+                <div class="inlineToggleBar" id="concToggleBar">
+                  <label title="CO₂ (ppm)"><input type="checkbox" id="concCO2" checked /> CO₂</label>
+                  <label title="CH₄ (ppb)"><input type="checkbox" id="concCH4" checked /> CH₄</label>
+                  <label title="N₂O (ppb, implied from forcing)"><input type="checkbox" id="concN2O" checked /> N₂O</label>
+                  <label title="Other WMGHG (ppt-equivalent, implied from forcing)"><input type="checkbox" id="concOTHER" /> Other</label>
+                </div>
+                <div class="chartBox resizable"><canvas id="plotOutConc" data-height="260" class="autoHeight"></canvas></div>
+              </div>
+
+              <div class="out-block" id="blockCarbon" style="display:none;">
+                <div class="out-title">Carbon stocks</div>
+                <div class="out-sub">Carbon reservoirs (GtC) in the simple carbon-cycle model.</div>
+                <div class="inlineToggleBar" id="carbonToggleBar">
+                  <label title="Atmosphere (GtC)"><input type="checkbox" id="carbAtm" checked /> Atmosphere</label>
+                  <label title="Vegetation (GtC)"><input type="checkbox" id="carbVeg" checked /> Vegetation</label>
+                  <label title="Soil (GtC)"><input type="checkbox" id="carbSoil" checked /> Soil</label>
+                  <label title="Upper ocean (GtC)"><input type="checkbox" id="carbUpper" /> Upper ocean</label>
+                  <label title="Deep ocean (GtC)"><input type="checkbox" id="carbDeep" /> Deep ocean</label>
+                </div>
+                <div class="chartBox resizable"><canvas id="plotOutCarbon" data-height="260" class="autoHeight"></canvas></div>
+              </div>
+
+              <div class="out-block" id="blockPH" style="display:none;">
+                <div class="out-title">Ocean pH</div>
+                <div class="out-sub">Surface-ocean pH estimated from upper-ocean carbonate chemistry in the carbon-cycle module.</div>
+                <div class="chartBox resizable"><canvas id="plotOutPH" data-height="260" class="autoHeight"></canvas></div>
+              </div>
+
+              <div class="out-block" id="blockF" style="display:none;">
+                <div class="out-title">Radiative forcing components</div>
+                <div class="out-sub">Effective radiative forcing (W m⁻²) relative to 1850. CO₂/CH₄ are computed from modelled concentrations; other components are scenario inputs.</div>
+                <div class="inlineToggleBar" id="forcingToggleBar">
+                  <label title="Total forcing"><input type="checkbox" id="fShowTotal" checked /> Total</label>
+                  <label title="CO₂ forcing"><input type="checkbox" id="fShowCO2" checked /> CO₂</label>
+                  <label title="CH₄ forcing"><input type="checkbox" id="fShowCH4" checked /> CH₄</label>
+                  <label title="N₂O forcing"><input type="checkbox" id="fShowN2O" checked /> N₂O</label>
+                  <label title="Other WMGHG forcing"><input type="checkbox" id="fShowOther" checked /> Other WMGHG</label>
+                  <label title="Ozone forcing"><input type="checkbox" id="fShowO3" checked /> Ozone</label>
+                  <label title="Aerosol forcing"><input type="checkbox" id="fShowAER" checked /> Aerosol</label>
+                  <label title="Solar forcing"><input type="checkbox" id="fShowSolar" checked /> Solar</label>
+                  <label title="Volcanic forcing"><input type="checkbox" id="fShowVolc" checked /> Volcanic</label>
+                </div>
+                <div class="chartBox resizable"><canvas id="plotOutF" data-height="260" class="autoHeight"></canvas></div>
+              </div>
+
+              <div class="footnote">
+                Model structure follows Sherwood et&nbsp;al. (2022) appendix for the energy-balance + carbon-cycle components. Sea-level component is a simple temperature-based teaching approximation.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- DATA -->
+
+  <div id="plotTip" class="plot-tip"></div>
+
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-h">
+        <div class="title" id="modalTitle">Modal</div>
+        <button class="close" id="modalClose">Close</button>
+      </div>
+      <div class="modal-b" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Data (order matters: plain scripts sharing one scope, no build step needed) -->
+  <script src="data/scenario-data.js"></script>
+  <script src="data/compare-data.js"></script>
+  <script src="data/patterns_synthetic_1deg.js"></script>
+  <script src="data/teaching-scenarios.js"></script>
+
+  <!-- App -->
+  <script src="js/utils.js"></script>
+  <script src="js/plotting.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/patterns-map.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/editors.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
