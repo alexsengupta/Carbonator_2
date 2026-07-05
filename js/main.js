@@ -380,7 +380,7 @@
   el("btnStartDefault").addEventListener("click", ()=>selectScenario("ssp245"));
   el("btnHomeTop").addEventListener("click", ()=>{ state.mode="home"; state.scenario=null; state.lastOutput=null; renderAll(); });
   el("btnAboutTop").addEventListener("click", ()=>openAbout());
-  el("btnOpenInputsCSV").addEventListener("click", ()=>downloadText("rcmip_v5.1.0_collated_forcing_emissions_annualfilled_ssp119_ssp126_ssp245_ssp585_World_1850-2100.csv", document.getElementById("csvData").textContent.trim(), "text/csv"));
+  el("btnOpenInputsCSV").addEventListener("click", ()=>downloadText("rcmip_v5.1.0_collated_forcing_emissions_annualfilled_ssp119_ssp126_ssp245_ssp585_World_1850-2100.csv", CSV_DATA_TEXT.trim(), "text/csv"));
 
   el("btnViewData").addEventListener("click", ()=>openDataTable());
   el("btnDownloadScenarioCSV").addEventListener("click", ()=>downloadScenarioInputs());
