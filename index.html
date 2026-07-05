@@ -133,6 +133,7 @@
                 <button class="btn advOnly" id="btnParams" title="Edit model parameters (energy balance, carbon cycle, methane, sea level, internal variability).">Edit parameters</button>
                 <button class="btn" id="btnViewData" title="View input data table for this scenario (including any edits).">Input table</button>
                 <button class="btn" id="btnDownloadScenarioCSV" title="Download the scenario input time series as a CSV file.">Save inputs CSV</button>
+                <button class="btn" id="btnLoadScenarioCSV" title="Load input time series from a CSV file (a previously saved inputs file, or a sparse file with values at selected years — interpolated automatically).">Load inputs CSV</button>
                 <button class="btn" id="btnExportOutput" disabled title="Download model outputs as a CSV file (available after running).">Export outputs CSV</button>
               </div>
               <div style="margin-top:10px; font-size:11px; color:#666;">
@@ -591,6 +592,7 @@
   <script src="js/patterns-map.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/editors.js"></script>
+  <script src="js/loader.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

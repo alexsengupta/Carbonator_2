@@ -57,6 +57,33 @@ The scripts are plain (non-module) JavaScript loaded in dependency order and
 sharing one scope — which is what lets the same code run unbundled from `file://`
 and be trivially inlined into a single file.
 
+## Saving and loading scenarios
+
+Every scenario view has **Save inputs CSV** (the input time series, including any
+edits) and **Export outputs CSV** (model results after a run). **Load inputs CSV**
+does the reverse: it applies input series from a CSV file to the selected
+scenario, using the same custom-series mechanism as the in-app curve editor.
+
+Loaded files do **not** need annual data. The format is one `Year` column plus
+any subset of input variables; rows can be at any years and cells can be left
+blank — each variable is interpolated through its own specified points (with the
+app's monotone spline, held constant outside the specified range). Variables not
+in the file keep the scenario's own values. Column names can be raw keys
+(`E_CO2_GtC_yr`), the names written by Save inputs CSV, or short aliases
+(`CO2`, `CH4`, `Aerosol`, `Ozone`, `N2O`, `Other`, `Volcanic`, `Solar`).
+So a complete externally-authored scenario can be as small as:
+
+```csv
+Year,CO2,Volcanic
+2020,10,0
+2030,5,-8
+2032,5,0
+2100,-2,0
+```
+
+See [examples/custom-scenario-example.csv](examples/custom-scenario-example.csv).
+Files written by Save inputs CSV round-trip exactly.
+
 ## Single-file build
 
 To produce one self-contained HTML file (handy for email or offline use):
