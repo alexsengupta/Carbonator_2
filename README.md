@@ -83,8 +83,22 @@ Year,CO2,Volcanic
 2100,-2,0
 ```
 
+Different variables can use different node points by repeating the `Year`
+column: each `Year` column provides the years for the variable columns that
+follow it. All multi-point variables must share the same start and end year
+(checked on load); single-point variables are constants and exempt.
+
+```csv
+scenario,Year,CO2 emissions (GtC/yr),Year,CH4 emissions (TgCH4/yr)
+ssp119,1850,0.55,1850,43.1
+ssp119,1900,1.0,1851,43.2
+ssp119,2100,3.0,1852,43.3
+ssp119,,,2100,100
+```
+
 See [examples/custom-scenario-example.csv](examples/custom-scenario-example.csv).
-Files written by Save inputs CSV round-trip exactly.
+Files written by Save inputs CSV round-trip exactly. CSVs are written with
+ASCII-safe headers and a UTF-8 BOM so they open cleanly in Excel.
 
 ## Comparing runs
 

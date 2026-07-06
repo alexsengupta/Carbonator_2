@@ -72,8 +72,20 @@
   // ========================
   // Downloads
   // ========================
+  // ASCII-safe CSV header names: Excel often decodes CSV as windows-1252, turning
+  // CO₂/°C/W-m² into mojibake ("CO‚ÇÇ"). Headers are written ASCII-only, and CSVs
+  // get a UTF-8 BOM (below) so any remaining unicode decodes correctly too.
+  function csvAsciiHeader(s){
+    return String(s)
+      .replace(/₂/g, "2").replace(/₃/g, "3").replace(/₄/g, "4")
+      .replace(/²/g, "2").replace(/³/g, "3")
+      .replace(/°C/g, "degC").replace(/°/g, "deg")
+      .replace(/[–—]/g, "-");
+  }
+
   function downloadText(filename, text, mime="text/plain"){
-    const blob = new Blob([text], {type: mime});
+    const payload = (mime === "text/csv" && !text.startsWith("\uFEFF")) ? "\uFEFF" + text : text;
+    const blob = new Blob([payload], {type: mime});
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = filename;
@@ -164,7 +176,7 @@
   // Rendering
   // ========================
   const SCENARIO_GROUPS = [
-    {id:"ssp", title:"Future emission scenarios (SSPs)"},
+    {id:"ssp", title:"Default Scenarios"},
     {id:"teaching", title:"Teaching experiments"},
     {id:"user", title:"User scenarios"}
   ];

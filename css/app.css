@@ -1018,7 +1018,10 @@
 /* ==========================================================================
    Carbonator 2.1: logo, concertina sidebar, floating panel, compare view
    ========================================================================== */
-.brand .logo-img{ height:26px; width:auto; display:block; }
+.brand .logo{ display:flex; align-items:center; gap:5px; }
+.brand .logo a{ display:flex; align-items:center; gap:5px; text-decoration:none; }
+.brand .logo-img{ height:39px; width:auto; display:block; }
+.brand .logo-2{ color:var(--accent); font-weight:800; font-size:30px; line-height:1; }
 
 .sidegroup-toggle{
   display:block;

@@ -38,8 +38,12 @@
     let yMax = options.yMax ?? Math.max(...allY);
     if (!Number.isFinite(yMin) || !Number.isFinite(yMax)) { yMin=0; yMax=1; }
     if (yMin === yMax){ yMin -= 1; yMax += 1; }
-    const yPad = (yMax-yMin)*0.08;
-    yMin -= yPad; yMax += yPad;
+
+    // Snap the y axis to "nice" bounds/steps so tick labels are round numbers
+    const yNice = niceScale(yMin, yMax, options.yTicks ?? 5);
+    yMin = yNice.min; yMax = yNice.max;
+    const yTicks = yNice.ticks;
+    const yTickDigits = tickDecimals(yNice.step);
 
     const xScale = x => pad.l*dpr + (x-xMin)/(xMax-xMin) * (w - (pad.l+pad.r)*dpr);
     const yScale = y => h - pad.b*dpr - (y-yMin)/(yMax-yMin) * (h - (pad.t+pad.b)*dpr);
@@ -53,8 +57,8 @@
     ctx.lineTo(w-pad.r*dpr, h-pad.b*dpr);
     ctx.stroke();
 
-    const xTicks = options.xTicks ?? 5;
-    const yTicks = options.yTicks ?? 5;
+    // Year ticks at nice values within the data range (bounds don't move)
+    const xTickVals = niceTicksWithin(xMin, xMax, options.xTicks ?? 5);
 
     // grid
     ctx.strokeStyle = "#e0e7ed";
@@ -65,8 +69,8 @@
       ctx.lineTo(w-pad.r*dpr, yy);
       ctx.stroke();
     }
-    for (let i=0; i<=xTicks; i++){
-      const xx = pad.l*dpr + (w-(pad.l+pad.r)*dpr)*i/xTicks;
+    for (const xv of xTickVals){
+      const xx = xScale(xv);
       ctx.beginPath();
       ctx.moveTo(xx, pad.t*dpr);
       ctx.lineTo(xx, h-pad.b*dpr);
@@ -110,20 +114,18 @@
     // ticks
     ctx.fillStyle = "#444";
     ctx.font = `${11*dpr}px Arial`;
-    const yDigits = options.yDigits ?? 2;
 
     // y-axis tick labels: right-aligned near the axis (reduces overlap with y-axis title)
     ctx.textAlign = "right";
     for (let j=0; j<=yTicks; j++){
-      const yv = yMin + (yMax-yMin)*j/yTicks;
-      ctx.fillText(yv.toFixed(yDigits), (pad.l-8)*dpr, yScale(yv)+4*dpr);
+      const yv = yMin + yNice.step*j;
+      ctx.fillText(yv.toFixed(yTickDigits), (pad.l-8)*dpr, yScale(yv)+4*dpr);
     }
 
     // x-axis tick labels: centered under ticks
     ctx.textAlign = "center";
     const xTickY = h - pad.b*dpr + 16*dpr;
-    for (let i=0; i<=xTicks; i++){
-      const xv = xMin + (xMax-xMin)*i/xTicks;
+    for (const xv of xTickVals){
       ctx.fillText(Math.round(xv).toString(), xScale(xv), xTickY);
     }
     ctx.textAlign = "left";
@@ -254,8 +256,11 @@
     let yMin = options.yMin ?? 0;
     let yMax = options.yMax ?? Math.max(...totals);
     if (yMax === yMin) yMax = yMin + 1;
-    const yPad = (yMax-yMin)*0.08;
-    yMax += yPad;
+
+    const yNice = niceScale(yMin, yMax, options.yTicks ?? 5);
+    yMin = yNice.min; yMax = yNice.max;
+    const yTicks = yNice.ticks;
+    const yTickDigits = tickDecimals(yNice.step);
 
     const xScale = xv => pad.l*dpr + (xv-xMin)/(xMax-xMin) * (w - (pad.l+pad.r)*dpr);
     const yScale = yv => h - pad.b*dpr - (yv-yMin)/(yMax-yMin) * (h - (pad.t+pad.b)*dpr);
@@ -269,8 +274,7 @@
     ctx.lineTo(w-pad.r*dpr, h-pad.b*dpr);
     ctx.stroke();
 
-    const xTicks = options.xTicks ?? 5;
-    const yTicks = options.yTicks ?? 5;
+    const xTickVals = niceTicksWithin(xMin, xMax, options.xTicks ?? 5);
 
     ctx.strokeStyle = "#e0e7ed";
     for (let i=0; i<=yTicks; i++){
@@ -280,8 +284,8 @@
       ctx.lineTo(w-pad.r*dpr, yy);
       ctx.stroke();
     }
-    for (let i=0; i<=xTicks; i++){
-      const xx = pad.l*dpr + (w-(pad.l+pad.r)*dpr)*i/xTicks;
+    for (const xv of xTickVals){
+      const xx = xScale(xv);
       ctx.beginPath();
       ctx.moveTo(xx, pad.t*dpr);
       ctx.lineTo(xx, h-pad.b*dpr);
@@ -302,18 +306,16 @@
     // ticks
     ctx.fillStyle = "#444";
     ctx.font = `${11*dpr}px Arial`;
-    const yDigits = options.yDigits ?? 2;
 
     ctx.textAlign = "right";
     for (let j=0; j<=yTicks; j++) {
-      const yv = yMin + (yMax-yMin)*j/yTicks;
-      ctx.fillText(yv.toFixed(yDigits), (pad.l-8)*dpr, yScale(yv)+4*dpr);
+      const yv = yMin + yNice.step*j;
+      ctx.fillText(yv.toFixed(yTickDigits), (pad.l-8)*dpr, yScale(yv)+4*dpr);
     }
 
     ctx.textAlign = "center";
     const xTickY = h - pad.b*dpr + 16*dpr;
-    for (let i=0; i<=xTicks; i++) {
-      const xv = xMin + (xMax-xMin)*i/xTicks;
+    for (const xv of xTickVals){
       ctx.fillText(Math.round(xv).toString(), xScale(xv), xTickY);
     }
     ctx.textAlign = "left";
@@ -441,8 +443,11 @@
     let yMin = options.yMin ?? Math.min(...negSum);
     let yMax = options.yMax ?? Math.max(...posSum);
     if (yMin === yMax){ yMin -= 1; yMax += 1; }
-    const yPad = (yMax-yMin)*0.08;
-    yMin -= yPad; yMax += yPad;
+
+    const yNice = niceScale(yMin, yMax, options.yTicks ?? 6);
+    yMin = yNice.min; yMax = yNice.max;
+    const yTicks = yNice.ticks;
+    const yTickDigits = tickDecimals(yNice.step);
 
     const xScale = xv => pad.l*dpr + (xv-xMin)/(xMax-xMin) * (w - (pad.l+pad.r)*dpr);
     const yScale = yv => h - pad.b*dpr - (yv-yMin)/(yMax-yMin) * (h - (pad.t+pad.b)*dpr);
@@ -456,8 +461,7 @@
     ctx.lineTo(w-pad.r*dpr, h-pad.b*dpr);
     ctx.stroke();
 
-    const xTicks = options.xTicks ?? 5;
-    const yTicks = options.yTicks ?? 6;
+    const xTickVals = niceTicksWithin(xMin, xMax, options.xTicks ?? 5);
 
     // grid
     ctx.strokeStyle = "#e0e7ed";
@@ -468,8 +472,8 @@
       ctx.lineTo(w-pad.r*dpr, yy);
       ctx.stroke();
     }
-    for (let i=0; i<=xTicks; i++){
-      const xx = pad.l*dpr + (w-(pad.l+pad.r)*dpr)*i/xTicks;
+    for (const xv of xTickVals){
+      const xx = xScale(xv);
       ctx.beginPath();
       ctx.moveTo(xx, pad.t*dpr);
       ctx.lineTo(xx, h-pad.b*dpr);
@@ -499,18 +503,16 @@
     // ticks
     ctx.fillStyle = "#444";
     ctx.font = `${11*dpr}px Arial`;
-    const yDigits = options.yDigits ?? 2;
 
     ctx.textAlign = "right";
     for (let j=0; j<=yTicks; j++){
-      const yv = yMin + (yMax-yMin)*j/yTicks;
-      ctx.fillText(yv.toFixed(yDigits), (pad.l-8)*dpr, yScale(yv)+4*dpr);
+      const yv = yMin + yNice.step*j;
+      ctx.fillText(yv.toFixed(yTickDigits), (pad.l-8)*dpr, yScale(yv)+4*dpr);
     }
 
     ctx.textAlign = "center";
     const xTickY = h - pad.b*dpr + 16*dpr;
-    for (let i=0; i<=xTicks; i++){
-      const xv = xMin + (xMax-xMin)*i/xTicks;
+    for (const xv of xTickVals){
       ctx.fillText(Math.round(xv).toString(), xScale(xv), xTickY);
     }
     ctx.textAlign = "left";

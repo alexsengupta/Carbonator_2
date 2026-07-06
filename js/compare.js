@@ -58,6 +58,7 @@
     for (const [col, disp] of OUTPUT_HEADER_MAP){
       byNorm.set(norm(col), col);
       byNorm.set(norm(disp), col);
+      byNorm.set(norm(csvAsciiHeader(disp)), col); // headers are written ASCII-safe
     }
 
     const header = loaderSplitLine(lines[0]);

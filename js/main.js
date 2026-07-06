@@ -67,7 +67,7 @@
     const cols = headerMap.map(d=>d[0]);
 
     const lines = [];
-    lines.push(["scenario", ...headerMap.map(d=>d[1])].join(","));
+    lines.push(["scenario", ...headerMap.map(d=>csvAsciiHeader(d[1]))].join(","));
     for (const r of rows){
       lines.push([state.scenario, ...cols.map(c=>r[c])].join(","));
     }
@@ -83,7 +83,7 @@
     const headerMap = OUTPUT_HEADER_MAP;
     const cols = headerMap.map(d=>d[0]);
     const lines = [];
-    lines.push(["scenario", ...headerMap.map(d=>d[1])].join(","));
+    lines.push(["scenario", ...headerMap.map(d=>csvAsciiHeader(d[1]))].join(","));
 
     // Derived series for export
     const C0 = 270; // ppb (approx 1850 / preindustrial)

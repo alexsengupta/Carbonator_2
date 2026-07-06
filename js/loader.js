@@ -86,15 +86,36 @@
 
   // Parse CSV text -> {points: {col: [[year,value],...]}, ignored: [...], baseKey: string|null}
   // Throws Error with a user-readable message on malformed input.
+  //
+  // Multiple "Year" columns are allowed: each Year column provides the years for
+  // the variable columns that FOLLOW it (until the next Year column), so different
+  // variables can specify different numbers of node points, e.g.
+  //   scenario,Year,CO2,Year,CH4
+  //   ssp119,1850,0.55,1850,43.1
+  //   ssp119,1900,1,1851,43.2
+  //   ssp119,2100,3,1852,43.3
+  //   ssp119,,,1853,43.9        <- CO2 block exhausted, CH4 continues
   function parseScenarioCSV(text){
-    const lines = text.trim().split(/\r?\n/).filter(l => l.trim() !== "");
+    const lines = text.replace(/^\uFEFF/, "").trim().split(/\r?\n/).filter(l => l.trim() !== "");
     if (lines.length < 2) throw new Error("File has no data rows.");
 
     const header = loaderSplitLine(lines[0]);
     const colOf = header.map(loaderMatchHeader);
-    const yearIdx = colOf.indexOf("year");
-    if (yearIdx === -1) throw new Error('No "Year" column found in the header row.');
+    if (!colOf.includes("year")) throw new Error('No "Year" column found in the header row.');
     const scenIdx = colOf.indexOf("scenario");
+
+    // Bind each variable column to the nearest "Year" column on its left
+    let curYearIdx = -1;
+    const varCols = []; // {ci, col, yearIdx}
+    for (let ci = 0; ci < colOf.length; ci++){
+      if (colOf[ci] === "year"){ curYearIdx = ci; continue; }
+      if (!colOf[ci] || colOf[ci] === "scenario") continue;
+      if (curYearIdx === -1){
+        throw new Error(`Column "${header[ci]}" appears before any "Year" column.`);
+      }
+      varCols.push({ci, col: colOf[ci], yearIdx: curYearIdx});
+    }
+    if (!varCols.length) throw new Error("No recognised input-variable columns found.");
 
     const ignored = header.filter((h, i) => colOf[i] === null && h.trim() !== "");
 
@@ -102,25 +123,42 @@
     const points = {};
     for (let li = 1; li < lines.length; li++){
       const cells = loaderSplitLine(lines[li]);
-      const y = Number(cells[yearIdx]);
-      if (!Number.isFinite(y)) continue;
       if (scenIdx !== -1 && baseKey === null && (cells[scenIdx] || "").trim() !== ""){
         baseKey = cells[scenIdx].trim();
       }
-      for (let ci = 0; ci < colOf.length; ci++){
-        const col = colOf[ci];
-        if (!col || col === "year" || col === "scenario") continue;
-        const raw = (cells[ci] ?? "").trim();
+      for (const vc of varCols){
+        const y = Number((cells[vc.yearIdx] ?? "").trim());
+        if (!Number.isFinite(y)) continue;
+        const raw = (cells[vc.ci] ?? "").trim();
         if (raw === "") continue;
         const v = Number(raw);
         if (!Number.isFinite(v)) continue;
-        (points[col] = points[col] || []).push([y, v]);
+        (points[vc.col] = points[vc.col] || []).push([y, v]);
       }
     }
 
-    if (!Object.keys(points).length){
+    const cols = Object.keys(points);
+    if (!cols.length){
       throw new Error("No numeric values found for any recognised input variable.");
     }
+
+    // Interpolation needs a common time span: all multi-point series must share
+    // the same first and last year (single-point series are constants and exempt).
+    const spans = cols
+      .map(c => {
+        const ys = points[c].map(p => p[0]);
+        return {col: c, n: ys.length, from: Math.min(...ys), to: Math.max(...ys)};
+      })
+      .filter(s => s.n > 1);
+    if (spans.length > 1){
+      const from0 = spans[0].from, to0 = spans[0].to;
+      const bad = spans.filter(s => s.from !== from0 || s.to !== to0);
+      if (bad.length){
+        const detail = spans.map(s => `${s.col}: ${s.from}–${s.to}`).join("; ");
+        throw new Error("All variables must share the same start and end year for interpolation. Found: " + detail);
+      }
+    }
+
     return {points, ignored, baseKey};
   }
 

@@ -115,6 +115,43 @@
 
   function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
 
+  // "Nice" axis scaling: snap bounds/step to 1, 2 or 5 x 10^n so tick labels are
+  // round numbers (e.g. -1..5 step 1, not -0.65..5.47 step 1.224).
+  function niceScale(min, max, maxTicks=5){
+    if (!Number.isFinite(min) || !Number.isFinite(max)){ min = 0; max = 1; }
+    if (min === max){ min -= 1; max += 1; }
+    const niceNum = (range, round) => {
+      const exp = Math.floor(Math.log10(range));
+      const f = range / Math.pow(10, exp);
+      let nf;
+      if (round) nf = f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10;
+      else       nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+      return nf * Math.pow(10, exp);
+    };
+    const step = niceNum((max - min) / Math.max(1, maxTicks), true);
+    const lo = Math.floor(min / step) * step;
+    const hi = Math.ceil(max / step) * step;
+    return { min: lo, max: hi, step, ticks: Math.round((hi - lo) / step) };
+  }
+
+  // Decimal places needed to print multiples of `step` exactly (capped at 6)
+  function tickDecimals(step){
+    let d = 0;
+    while (d < 6 && Math.abs(Math.round(step * 10**d) - step * 10**d) > 1e-9) d++;
+    return d;
+  }
+
+  // Nice tick values strictly WITHIN [min,max] — for axes whose bounds must not
+  // move (e.g. the year axis spans exactly the data range).
+  function niceTicksWithin(min, max, maxTicks=5){
+    const step = niceScale(min, max, maxTicks).step;
+    const out = [];
+    for (let v = Math.ceil(min / step - 1e-9) * step; v <= max + step*1e-9; v += step){
+      out.push(Math.abs(v) < step*1e-9 ? 0 : v);
+    }
+    return out;
+  }
+
   // ------------------------
   // Random numbers (seeded)
   // ------------------------
