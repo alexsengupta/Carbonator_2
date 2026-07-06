@@ -9,7 +9,7 @@
 <body>
   <div class="topbar">
     <div class="brand">
-      <div class="logo"><span>CARB</span><span class="onator">ONATOR</span></div>
+      <div class="logo"><img src="assets/img/logo_carbonator.png" alt="Carbonator" class="logo-img"></div>
       <div class="tag">SSP teaching tool</div>
     </div>
 
@@ -35,6 +35,9 @@
     <aside class="sidebar">
       <div class="side-h">Select Scenario:</div>
       <div id="sidebarList"></div>
+      <div class="side-foot">
+        <button class="sideitem" id="btnCompareSidebar" title="Overlay several runs (from this session or from saved outputs files) on one chart.">Compare runs<small>overlay scenarios</small></button>
+      </div>
     </aside>
 
     <main class="main">
@@ -109,31 +112,10 @@
                 <div style="font-size:11px; color:#666;">Seed: <span id="ivSeedVal">1</span></div>
               </div>
 
-              <div class="advOnly" id="viewRangeBox" style="margin-top:10px; padding-top:10px; border-top:1px dashed rgba(0,0,0,0.12);">
-                <div style="font-weight:700; font-size:11px; margin-bottom:6px;">View window</div>
-                <div style="font-size:11px; color:#666; margin-bottom:6px;">Display: <span id="viewRangeLabel">1850–2100</span></div>
-                <div class="viewGrid">
-                  <div>
-                    <div style="display:flex; justify-content:space-between; font-size:11px; color:#666;">
-                      <span>Start</span><span id="viewStartVal">1850</span>
-                    </div>
-                    <input type="range" id="viewStart" min="1850" max="2100" step="1" value="1850" />
-                  </div>
-                  <div>
-                    <div style="display:flex; justify-content:space-between; font-size:11px; color:#666;">
-                      <span>End</span><span id="viewEndVal">2100</span>
-                    </div>
-                    <input type="range" id="viewEnd" min="1850" max="2100" step="1" value="2100" />
-                  </div>
-                  <button class="btn" id="btnViewFull" type="button" style="padding:4px 8px; font-size:11px; grid-column: 1 / -1;">Full range</button>
-                </div>
-              </div>
-
               <div class="panel-actions">
                 <button class="btn advOnly" id="btnParams" title="Edit model parameters (energy balance, carbon cycle, methane, sea level, internal variability).">Edit parameters</button>
                 <button class="btn" id="btnViewData" title="View input data table for this scenario (including any edits).">Input table</button>
                 <button class="btn" id="btnDownloadScenarioCSV" title="Download the scenario input time series as a CSV file.">Save inputs CSV</button>
-                <button class="btn" id="btnLoadScenarioCSV" title="Load input time series from a CSV file (a previously saved inputs file, or a sparse file with values at selected years — interpolated automatically).">Load inputs CSV</button>
                 <button class="btn" id="btnExportOutput" disabled title="Download model outputs as a CSV file (available after running).">Export outputs CSV</button>
               </div>
               <div style="margin-top:10px; font-size:11px; color:#666;">
@@ -358,36 +340,6 @@
 
         <!-- OUTPUT MODE -->
         <div id="outputMode" style="display:none;">
-          <div class="output-top">
-            <div style="font-size:12px; font-weight:700; color:#2b2b2b;">Outputs:</div>
-            <div class="outToggleBar">
-              <label title="Sea level rise components">
-                <input type="checkbox" id="outSeaLevel" />
-                Sea level
-              </label>
-              <label title="Atmospheric concentrations">
-                <input type="checkbox" id="outConc" />
-                Concentrations
-              </label>
-              <label title="Carbon reservoirs in the carbon-cycle model">
-                <input type="checkbox" id="outCarbon" />
-                Carbon stocks
-              </label>
-              <label title="Surface-ocean pH">
-                <input type="checkbox" id="outPH" />
-                pH
-              </label>
-              <label title="Effective radiative forcing components">
-                <input type="checkbox" id="outF" />
-                Forcings
-              </label>
-              <label title="Local projections using pattern scaling (teaching approximation)">
-                <input type="checkbox" id="outLocal" />
-                Local patterns
-              </label>
-            </div>
-          </div>
-
           <div class="split-head">
             <div class="hcell">Inputs:</div>
             <div class="hcell">Outputs:</div>
@@ -561,10 +513,99 @@
           </div>
         </div>
       </section>
+
+      <!-- COMPARE VIEW -->
+      <section id="viewCompare" style="display:none;">
+        <div class="welcome">
+          <h1>Compare runs</h1>
+          <p>
+            Overlay several model runs on one chart. Add the run you have on screen (run a scenario, then
+            <b>Add current run</b> — or use <b>Add to compare</b> in the display controls), and/or load files
+            saved earlier with <b>Export outputs CSV</b>. Runs stay here for this browser session.
+          </p>
+          <div class="cta-row">
+            <button class="btn orange" id="btnCmpAddCurrent" title="Add the most recent run from this session.">Add current run</button>
+            <button class="btn" id="btnCmpLoad" title="Load one or more files saved with Export outputs CSV.">Load outputs CSV…</button>
+            <label class="cmp-varpick">Variable:
+              <select id="cmpVarSelect"></select>
+            </label>
+          </div>
+        </div>
+
+        <div id="cmpEmpty" class="info-bar">
+          <div class="info-dot">i</div>
+          <div>No runs yet. Run a scenario and click <b>Add current run</b>, or load saved outputs files.</div>
+        </div>
+
+        <div id="cmpPlotWrap" style="display:none;">
+          <div id="cmpRunList" class="cmp-runs"></div>
+          <div class="cmp-plot-panel">
+            <canvas id="plotCompare" data-height="420"></canvas>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
-  <!-- DATA -->
+  <!-- Floating display controls (visible in scenario view) -->
+  <div id="floatPanel" class="float-panel" style="display:none;">
+    <div class="fp-h">
+      <span>Display controls</span>
+      <button id="fpCollapse" title="Collapse or expand this panel">–</button>
+    </div>
+    <div class="fp-b" id="fpBody">
+      <div id="viewRangeBox">
+        <div style="font-weight:700; font-size:11px; margin-bottom:6px;">View window</div>
+        <div style="font-size:11px; color:#666; margin-bottom:6px;">Display: <span id="viewRangeLabel">1850–2100</span></div>
+        <div class="viewGrid">
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:#666;">
+              <span>Start</span><span id="viewStartVal">1850</span>
+            </div>
+            <input type="range" id="viewStart" min="1850" max="2100" step="1" value="1850" />
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:#666;">
+              <span>End</span><span id="viewEndVal">2100</span>
+            </div>
+            <input type="range" id="viewEnd" min="1850" max="2100" step="1" value="2100" />
+          </div>
+          <button class="btn" id="btnViewFull" type="button" style="padding:4px 8px; font-size:11px; grid-column: 1 / -1;">Full range</button>
+        </div>
+      </div>
+
+      <div id="fpOutputs" style="margin-top:10px; padding-top:10px; border-top:1px dashed rgba(0,0,0,0.12);">
+        <div style="font-weight:700; font-size:11px; margin-bottom:6px;">Output panels</div>
+        <div class="outToggleBar">
+          <label title="Sea level rise components">
+            <input type="checkbox" id="outSeaLevel" />
+            Sea level
+          </label>
+          <label title="Atmospheric concentrations">
+            <input type="checkbox" id="outConc" />
+            Concentrations
+          </label>
+          <label title="Carbon reservoirs in the carbon-cycle model">
+            <input type="checkbox" id="outCarbon" />
+            Carbon stocks
+          </label>
+          <label title="Surface-ocean pH">
+            <input type="checkbox" id="outPH" />
+            pH
+          </label>
+          <label title="Effective radiative forcing components">
+            <input type="checkbox" id="outF" />
+            Forcings
+          </label>
+          <label title="Local projections using pattern scaling (teaching approximation)">
+            <input type="checkbox" id="outLocal" />
+            Local patterns
+          </label>
+        </div>
+        <button class="btn" id="fpAddCompare" type="button" style="margin-top:8px; padding:4px 8px; font-size:11px; width:100%;" title="Add this run to the Compare view.">Add to compare</button>
+      </div>
+    </div>
+  </div>
 
   <div id="plotTip" class="plot-tip"></div>
 
@@ -593,6 +634,7 @@
   <script src="js/ui.js"></script>
   <script src="js/editors.js"></script>
   <script src="js/loader.js"></script>
+  <script src="js/compare.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

@@ -145,3 +145,5 @@ details[open] summary{ margin-bottom:8px; }
   color:var(--muted);
 }
 .site-footer img{ height:34px; width:auto; display:block; }
+
+.brand .logo-img{ height:26px; width:auto; display:block; }

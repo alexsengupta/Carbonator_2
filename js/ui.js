@@ -6,6 +6,17 @@
   function show(view){
     el("viewHome").style.display = (view==="home") ? "" : "none";
     el("viewScenario").style.display = (view==="scenario") ? "" : "none";
+    const cmp = el("viewCompare");
+    if (cmp) cmp.style.display = (view==="compare") ? "" : "none";
+  }
+
+  function promptFilename(defaultName){
+    let name = window.prompt("Save file as:", defaultName);
+    if (name === null) return null;
+    name = name.trim();
+    if (!name) return null;
+    if (!/\.csv$/i.test(name)) name += ".csv";
+    return name;
   }
 
   function setModeButtons(){
@@ -34,6 +45,8 @@
     document.querySelectorAll(".sideitem").forEach(btn => {
       btn.classList.toggle("active", btn.dataset.scenario === state.scenario);
     });
+    const cmp = el("btnCompareSidebar");
+    if (cmp) cmp.classList.toggle("active", state.mode === "compare");
   }
 
   // ========================
@@ -152,8 +165,27 @@
   // ========================
   const SCENARIO_GROUPS = [
     {id:"ssp", title:"Future emission scenarios (SSPs)"},
-    {id:"teaching", title:"Teaching experiments"}
+    {id:"teaching", title:"Teaching experiments"},
+    {id:"user", title:"User scenarios"}
   ];
+
+  // Sidebar concertina state (in-memory; teaching starts collapsed for space)
+  const sidebarCollapsed = { ssp:false, teaching:true, user:false };
+
+  function deleteUserScenario(key){
+    const i = SCENARIOS.findIndex(s => s.key === key);
+    if (i >= 0) SCENARIOS.splice(i, 1);
+    BY_SCENARIO.delete(key);
+    const j = USER_SCENARIOS.indexOf(key);
+    if (j >= 0) USER_SCENARIOS.splice(j, 1);
+    if (state.scenario === key){
+      state.mode = "home";
+      state.scenario = null;
+      state.lastOutput = null;
+    }
+    renderSidebar();
+    renderAll();
+  }
 
   function renderHome(){
     const grid = el("homeScenarioGrid");
@@ -178,6 +210,8 @@
             </div>
           </div>
         `;
+        const img = s.img || (g.id === "user" ? "assets/img/scenarios/custom.png" : null);
+        if (img) card.querySelector(".thumb").style.backgroundImage = `url('${img}')`;
         card.querySelector("[data-start]").addEventListener("click", ()=>selectScenario(s.key));
         grid.appendChild(card);
       }
@@ -189,18 +223,50 @@
     list.innerHTML = "";
     for (const g of SCENARIO_GROUPS){
       const members = SCENARIOS.filter(s => (s.group || "ssp") === g.id);
-      if (!members.length) continue;
-      const label = document.createElement("div");
-      label.className = "sidegroup";
-      label.textContent = g.title;
+      // "User scenarios" group is always shown (it hosts the Load button)
+      if (!members.length && g.id !== "user") continue;
+
+      const collapsed = !!sidebarCollapsed[g.id];
+      const label = document.createElement("button");
+      label.className = "sidegroup sidegroup-toggle";
+      label.innerHTML = `<span class="tri">${collapsed ? "▸" : "▾"}</span> ${g.title}` +
+                        (members.length ? ` <span class="cnt">(${members.length})</span>` : "");
+      label.addEventListener("click", ()=>{
+        sidebarCollapsed[g.id] = !sidebarCollapsed[g.id];
+        renderSidebar();
+        setActiveSidebar();
+      });
       list.appendChild(label);
+      if (collapsed) continue;
+
       for (const s of members){
         const btn = document.createElement("button");
         btn.className = "sideitem";
         btn.dataset.scenario = s.key;
-        btn.innerHTML = `${s.name}<small>${g.id === "ssp" ? s.key : "experiment"}</small>`;
+        const sub = g.id === "ssp" ? s.key : (g.id === "user" ? "loaded" : "experiment");
+        btn.innerHTML = `${s.name}<small>${sub}</small>`;
         btn.addEventListener("click", ()=>selectScenario(s.key));
+        if (g.id === "user"){
+          const del = document.createElement("span");
+          del.className = "side-del";
+          del.title = "Remove this scenario from the list";
+          del.textContent = "×";
+          del.addEventListener("click", (ev)=>{
+            ev.stopPropagation();
+            deleteUserScenario(s.key);
+          });
+          btn.appendChild(del);
+        }
         list.appendChild(btn);
+      }
+
+      if (g.id === "user"){
+        const load = document.createElement("button");
+        load.className = "sideload";
+        load.id = "btnLoadScenarioSidebar";
+        load.title = "Load a scenario from a CSV file (a previously saved inputs file, or a sparse file with values at selected years — interpolated automatically).";
+        load.textContent = "+ Load scenario (CSV)…";
+        list.appendChild(load);
       }
     }
   }
@@ -280,6 +346,13 @@
     el("scenarioBar").textContent = meta ? `${meta.name} (${meta.key})` : "";
     el("scenarioName").textContent = meta ? `${meta.name} (${meta.key})` : "";
     el("scenarioBlurb").textContent = meta ? meta.desc : "";
+    const thumb = document.querySelector("#viewScenario .scenario-header .thumb");
+    if (thumb){
+      const img = meta && (meta.img || (meta.group === "user" ? "assets/img/scenarios/custom.png" : null));
+      thumb.style.backgroundImage = img ? `url('${img}')` : "";
+      thumb.style.backgroundSize = "cover";
+      thumb.style.backgroundPosition = "center";
+    }
   }
 
   function renderInputCharts(){
@@ -520,15 +593,36 @@
     }
   }
 
+  function updateFloatPanel(){
+    const panel = el("floatPanel");
+    if (!panel) return;
+    const inScenario = (state.mode === "edit" || state.mode === "output");
+    panel.style.display = inScenario ? "" : "none";
+    if (!inScenario) return;
+    const isOutput = (state.mode === "output");
+    const outBlock = el("fpOutputs");
+    if (outBlock) outBlock.style.display = isOutput ? "" : "none";
+    const addCmp = el("fpAddCompare");
+    if (addCmp) addCmp.style.display = (isOutput && state.lastOutput) ? "" : "none";
+  }
+
   function renderAll(){
     setModeButtons();
     updateEditBadges();
+    updateFloatPanel();
 
     if (state.mode === "home"){
       show("home");
       state.lastOutput = null;
       renderHome();
       setActiveSidebar();
+      return;
+    }
+
+    if (state.mode === "compare"){
+      show("compare");
+      setActiveSidebar();
+      if (typeof renderCompare === "function") renderCompare();
       return;
     }
 

@@ -45,7 +45,7 @@
       for (const r of rows){
         if (r.year >= 2030 && r.year <= 2039) r.E_CO2_GtC_yr = 20;
       }
-      list.push({key, name:"CO₂ Pulse", group:"teaching", rows,
+      list.push({key, name:"CO₂ Pulse", group:"teaching", img:"assets/img/scenarios/co2pulse.jpeg", rows,
         desc:"How would temperatures react to a sudden release of CO₂? All other forcings are zero except a 10-year pulse of CO₂ (2030–2039) at 20 GtC/yr. Note the long recovery: CO₂ is removed from the atmosphere only slowly."});
     }
 
@@ -57,7 +57,7 @@
       for (const r of rows){
         if (r.year >= 2030 && r.year <= 2039) r.E_CH4_TgCH4_yr = 1000;
       }
-      list.push({key, name:"CH₄ Pulse", group:"teaching", rows,
+      list.push({key, name:"CH₄ Pulse", group:"teaching", img:"assets/img/scenarios/ch4pulse.jpeg", rows,
         desc:"How would temperatures react to a sudden release of methane? All other forcings are zero except a 10-year pulse of CH₄ (2030–2039) at 1000 Tg/yr. Compare the fast recovery with the CO₂ pulse: methane is removed within decades."});
     }
 
@@ -71,7 +71,7 @@
       for (const r of rows){
         if (r.year >= 2030 && r.year <= 2079) r.ERF_aerosol_rel1850_Wm2 = -10.2;
       }
-      list.push({key, name:"White Roofs", group:"teaching", rows,
+      list.push({key, name:"White Roofs", group:"teaching", img:"assets/img/scenarios/whiteroofs.jpg", rows,
         desc:"What would happen if we made the planet more reflective? All emissions are zero; planetary reflectivity (albedo) jumps from 0.31 to 0.34 between 2030 and 2080 (≈ −10 W/m², applied via the aerosol channel), then returns to normal."});
     }
 
@@ -90,7 +90,7 @@
           r.ERF_aerosol_rel1850_Wm2 = lerp(-8.0, -11.0, (r.year - 2070) / 30);
         }
       }
-      list.push({key, name:"Geoengineering", group:"teaching", rows,
+      list.push({key, name:"Geoengineering", group:"teaching", img:"assets/img/scenarios/geoengineering.jpg", rows,
         desc:"Can we pump aerosols into the stratosphere to counteract warming? Emissions follow SSP5-8.5, but reflective aerosol forcing is ramped up massively over the 21st century (to −8 W/m² by 2070). Watch what happens to temperature — and consider what is NOT fixed (e.g. ocean acidification)."});
     }
 
@@ -108,7 +108,7 @@
           r.ERF_aerosol_rel1850_Wm2 = 0;
         }
       }
-      list.push({key, name:"Geoengineering Failure", group:"teaching", rows,
+      list.push({key, name:"Geoengineering Failure", group:"teaching", img:"assets/img/scenarios/geoengineering2.jpg", rows,
         desc:"What happens if geoengineering suddenly fails? As in the Geoengineering experiment, but in 2070 the aerosol injection stops. The aerosols wash out almost immediately while greenhouse gases remain — producing an abrupt 'termination shock' of rapid warming."});
     }
 
@@ -132,7 +132,7 @@
           r.ERF_otherWMGHG_rel1850_Wm2 = oth2025;
         }
       }
-      list.push({key, name:"Eliminate All Emissions", group:"teaching", rows,
+      list.push({key, name:"Eliminate All Emissions", group:"teaching", img:"assets/img/scenarios/zeroemissions.png", rows,
         desc:"What if we suddenly stopped all greenhouse gas and aerosol emissions in 2026? Note the initial warming spike as cooling aerosols wash out, the rapid decline of methane, and the warming already committed by past CO₂ emissions."});
     }
 
@@ -147,7 +147,7 @@
         if (r.year >= 1920 && r.year <= 1969) r.ERF_solar_rel1850_Wm2 = 0.5;
         else if (r.year >= 2010 && r.year <= 2059) r.ERF_solar_rel1850_Wm2 = -0.5;
       }
-      list.push({key, name:"Solar Variations", group:"teaching", rows,
+      list.push({key, name:"Solar Variations", group:"teaching", img:"assets/img/scenarios/solarvariations.jpeg", rows,
         desc:"What happens if the Sun's output increases or decreases? All emissions are zero; solar forcing is raised by 0.5 W/m² for 50 years (1920–1969), then lowered by 0.5 W/m² for 50 years (2010–2059). These swings are much larger than the real ~0.1 W/m² solar cycle."});
     }
 
@@ -164,7 +164,7 @@
           r.ERF_volcanic_rel1850_Wm2 = PEAK * Math.exp(-(r.year - T0) / TAU);
         }
       }
-      list.push({key, name:"Mega Volcano", group:"teaching", rows,
+      list.push({key, name:"Mega Volcano", group:"teaching", img:"assets/img/scenarios/megavolcano.jpg", rows,
         desc:"How does a very large volcanic eruption change global temperature? All emissions are zero; in 2030 a massive eruption injects reflective aerosols into the stratosphere (peak forcing −10 W/m², about three times Pinatubo), which wash out over a few years."});
     }
 

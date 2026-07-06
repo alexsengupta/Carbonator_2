@@ -5,18 +5,54 @@
   const BY_SCENARIO = groupByScenario(ALL_ROWS);
 
   const SCENARIOS = [
-    {key:"ssp119", name:"SSP1-1.9", group:"ssp", desc:"Very strong mitigation. Rapid reductions in CO₂ and CH₄ emissions; low end-of-century forcing."},
-    {key:"ssp126", name:"SSP1-2.6", group:"ssp", desc:"Strong mitigation. Emissions decline substantially; stabilising forcing by late century."},
-    {key:"ssp245", name:"SSP2-4.5", group:"ssp", desc:"Intermediate pathway. Emissions peak mid-century and decline; moderate forcing by 2100."},
-    {key:"ssp585", name:"SSP5-8.5", group:"ssp", desc:"High emissions. Fossil-fuel intensive pathway with strong forcing increases through the century."}
+    {key:"ssp119", name:"SSP1-1.9", group:"ssp", img:"assets/img/scenarios/rcp3.jpeg", desc:"Very strong mitigation. Rapid reductions in CO₂ and CH₄ emissions; low end-of-century forcing."},
+    {key:"ssp126", name:"SSP1-2.6", group:"ssp", img:"assets/img/scenarios/rcp3.jpeg", desc:"Strong mitigation. Emissions decline substantially; stabilising forcing by late century."},
+    {key:"ssp245", name:"SSP2-4.5", group:"ssp", img:"assets/img/scenarios/rcp4.5.jpeg", desc:"Intermediate pathway. Emissions peak mid-century and decline; moderate forcing by 2100."},
+    {key:"ssp585", name:"SSP5-8.5", group:"ssp", img:"assets/img/scenarios/rcp8.5.jpeg", desc:"High emissions. Fossil-fuel intensive pathway with strong forcing increases through the century."}
   ];
 
   // Teaching experiments (ported from the original Carbonator): derived row sets
   // registered as ordinary scenarios so all editing/plotting works on them too.
   for (const t of buildTeachingScenarios(BY_SCENARIO)){
     BY_SCENARIO.set(t.key, t.rows);
-    SCENARIOS.push({key:t.key, name:t.name, group:t.group, desc:t.desc});
+    SCENARIOS.push({key:t.key, name:t.name, group:t.group, img:t.img, desc:t.desc});
   }
+
+  // Keys of user-loaded scenarios (in-memory only; not persisted across reloads)
+  const USER_SCENARIOS = [];
+
+  // Output columns and their CSV display names — shared by Export outputs CSV
+  // and the Compare view's outputs-file parser (keep the two in sync via this map).
+  const OUTPUT_HEADER_MAP = [
+    ["year","Year"],
+    ["T","Surface temperature (°C)"],
+    ["Tu","Upper ocean temperature (K)"],
+    ["Tl","Deep ocean temperature (K)"],
+    ["CO2_ppm","CO₂ concentration (ppm)"],
+    ["CH4_ppb","CH₄ concentration (ppb)"],
+    ["N2O_ppb_implied","N₂O concentration (ppb implied)"],
+    ["OtherWMGHG_ppt_eq_implied","Other WMGHG (ppt-eq implied)"],
+    ["pH","Ocean surface pH"],
+    ["Ca_GtC","Atmospheric carbon (GtC)"],
+    ["Cv_GtC","Vegetation carbon (GtC)"],
+    ["Cs_GtC","Soil carbon (GtC)"],
+    ["Cu_GtC","Upper ocean carbon (GtC)"],
+    ["Cl_GtC","Deep ocean carbon (GtC)"],
+    ["F_total","Total forcing (W/m²)"],
+    ["F_co2","CO₂ forcing (W/m²)"],
+    ["F_ch4","CH₄ forcing (W/m²)"],
+    ["F_n2o","N₂O forcing (W/m²)"],
+    ["F_other","Other WMGHG forcing (W/m²)"],
+    ["F_aer","Aerosol forcing (W/m²)"],
+    ["F_o3","Ozone forcing (W/m²)"],
+    ["F_solar","Solar forcing (W/m²)"],
+    ["F_volc","Volcanic forcing (W/m²)"],
+    ["q_int_Wm2","Internal heat exchange q (W/m² annual mean)"],
+    ["q_int_rms_Wm2","Internal heat exchange q (W/m² annual RMS)"],
+    ["SL_total_m","Sea level rise total (m)"],
+    ["SL_therm_m","Sea level rise thermal (m)"],
+    ["SL_ice_m","Sea level rise land ice (m)"],
+  ];
 
   const DEFAULTS = {
     uiMode: "basic",

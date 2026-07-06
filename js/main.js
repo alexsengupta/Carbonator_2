@@ -71,44 +71,16 @@
     for (const r of rows){
       lines.push([state.scenario, ...cols.map(c=>r[c])].join(","));
     }
-    downloadText(`${state.scenario}_inputs.csv`, lines.join("\n"), "text/csv");
+    const filename = promptFilename(`${state.scenario}_inputs.csv`);
+    if (!filename) return;
+    downloadText(filename, lines.join("\n"), "text/csv");
   }
 
   function exportOutputCSV(){
     if (!state.lastOutput) return;
     const out = state.lastOutput.out;
 
-    const headerMap = [
-      ["year","Year"],
-      ["T","Surface temperature (°C)"],
-      ["Tu","Upper ocean temperature (K)"],
-      ["Tl","Deep ocean temperature (K)"],
-      ["CO2_ppm","CO₂ concentration (ppm)"],
-      ["CH4_ppb","CH₄ concentration (ppb)"],
-      ["N2O_ppb_implied","N₂O concentration (ppb implied)"],
-      ["OtherWMGHG_ppt_eq_implied","Other WMGHG (ppt-eq implied)"],
-      ["pH","Ocean surface pH"],
-      ["Ca_GtC","Atmospheric carbon (GtC)"],
-      ["Cv_GtC","Vegetation carbon (GtC)"],
-      ["Cs_GtC","Soil carbon (GtC)"],
-      ["Cu_GtC","Upper ocean carbon (GtC)"],
-      ["Cl_GtC","Deep ocean carbon (GtC)"],
-      ["F_total","Total forcing (W/m²)"],
-      ["F_co2","CO₂ forcing (W/m²)"],
-      ["F_ch4","CH₄ forcing (W/m²)"],
-      ["F_n2o","N₂O forcing (W/m²)"],
-      ["F_other","Other WMGHG forcing (W/m²)"],
-      ["F_aer","Aerosol forcing (W/m²)"],
-      ["F_o3","Ozone forcing (W/m²)"],
-      ["F_solar","Solar forcing (W/m²)"],
-      ["F_volc","Volcanic forcing (W/m²)"],
-      ["q_int_Wm2","Internal heat exchange q (W/m² annual mean)"],
-      ["q_int_rms_Wm2","Internal heat exchange q (W/m² annual RMS)"],
-      ["SL_total_m","Sea level rise total (m)"],
-      ["SL_therm_m","Sea level rise thermal (m)"],
-      ["SL_ice_m","Sea level rise land ice (m)"],
-    ];
-
+    const headerMap = OUTPUT_HEADER_MAP;
     const cols = headerMap.map(d=>d[0]);
     const lines = [];
     lines.push(["scenario", ...headerMap.map(d=>d[1])].join(","));
@@ -131,7 +103,9 @@
       ].join(","));
     }
 
-    downloadText(`${state.scenario}_outputs.csv`, lines.join("\n"), "text/csv");
+    const filename = promptFilename(`${state.scenario}_outputs.csv`);
+    if (!filename) return;
+    downloadText(filename, lines.join("\n"), "text/csv");
   }
 
   // ========================
@@ -383,6 +357,16 @@
   el("btnOpenInputsCSV").addEventListener("click", ()=>downloadText("rcmip_v5.1.0_collated_forcing_emissions_annualfilled_ssp119_ssp126_ssp245_ssp585_World_1850-2100.csv", CSV_DATA_TEXT.trim(), "text/csv"));
 
   el("btnViewData").addEventListener("click", ()=>openDataTable());
+
+  // Floating display-controls panel: collapse/expand
+  if (el("fpCollapse")){
+    el("fpCollapse").addEventListener("click", ()=>{
+      const body = el("fpBody");
+      const hidden = body.style.display === "none";
+      body.style.display = hidden ? "" : "none";
+      el("fpCollapse").textContent = hidden ? "–" : "+";
+    });
+  }
   el("btnDownloadScenarioCSV").addEventListener("click", ()=>downloadScenarioInputs());
   el("btnExportOutput").addEventListener("click", ()=>exportOutputCSV());
   el("btnParams").addEventListener("click", ()=>openParams());

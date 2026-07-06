@@ -1014,3 +1014,173 @@
   color:var(--muted);
 }
 .site-footer img{ height:34px; width:auto; display:block; }
+
+/* ==========================================================================
+   Carbonator 2.1: logo, concertina sidebar, floating panel, compare view
+   ========================================================================== */
+.brand .logo-img{ height:26px; width:auto; display:block; }
+
+.sidegroup-toggle{
+  display:block;
+  width:100%;
+  text-align:left;
+  background:transparent;
+  border:0;
+  cursor:pointer;
+  font-family:inherit;
+}
+.sidegroup-toggle:hover{ color:rgba(255,255,255,0.85); }
+.sidegroup-toggle .tri{ display:inline-block; width:12px; }
+.sidegroup-toggle .cnt{ font-weight:400; opacity:0.7; }
+
+.sideitem{ position:relative; }
+.side-del{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  width:18px;
+  height:18px;
+  line-height:16px;
+  text-align:center;
+  border-radius:50%;
+  background:rgba(255,255,255,0.15);
+  color:#fff;
+  font-size:13px;
+}
+.side-del:hover{ background:#c0392b; }
+
+.sideload{
+  display:block;
+  width:calc(100% - 24px);
+  margin:6px 12px 10px;
+  padding:7px 10px;
+  background:rgba(255,255,255,0.08);
+  border:1px dashed rgba(255,255,255,0.4);
+  border-radius:4px;
+  color:#fff;
+  font-size:12px;
+  cursor:pointer;
+  text-align:left;
+  font-family:inherit;
+}
+.sideload:hover{ background:rgba(255,255,255,0.16); }
+
+.side-foot{
+  margin-top:10px;
+  padding-top:8px;
+  border-top:1px solid rgba(255,255,255,0.15);
+}
+
+.scenario-card .thumb{
+  background-size:cover;
+  background-position:center;
+}
+
+/* Floating display controls */
+.float-panel{
+  position:fixed;
+  right:16px;
+  bottom:16px;
+  width:250px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:6px;
+  box-shadow:0 6px 24px rgba(0,0,0,0.18);
+  z-index:70;
+  font-size:12px;
+}
+.fp-h{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:8px 10px;
+  background:linear-gradient(180deg, var(--top), var(--top2));
+  color:#fff;
+  font-weight:700;
+  font-size:12px;
+  border-radius:5px 5px 0 0;
+  user-select:none;
+}
+.fp-h button{
+  background:rgba(255,255,255,0.15);
+  border:0;
+  color:#fff;
+  width:20px;
+  height:20px;
+  border-radius:3px;
+  cursor:pointer;
+  line-height:1;
+}
+.fp-h button:hover{ background:rgba(255,255,255,0.3); }
+.fp-b{
+  padding:10px 12px;
+  max-height:60vh;
+  overflow-y:auto;
+}
+.float-panel .outToggleBar{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+}
+@media (max-width: 900px){
+  .float-panel{ width:210px; right:8px; bottom:8px; }
+}
+
+/* Compare view */
+.cmp-varpick{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+}
+.cmp-varpick select{
+  font-size:12px;
+  padding:5px 6px;
+  border:1px solid var(--border);
+  border-radius:4px;
+  background:#fff;
+  max-width:280px;
+}
+.cmp-runs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:12px 0;
+}
+.cmp-run{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:5px 8px 5px 10px;
+  font-size:12px;
+}
+.cmp-run .chip{
+  width:11px;
+  height:11px;
+  border-radius:50%;
+  flex:0 0 auto;
+}
+.cmp-run small{ color:var(--muted); }
+.cmp-del{
+  width:18px;
+  height:18px;
+  border:0;
+  border-radius:50%;
+  background:#eee;
+  cursor:pointer;
+  line-height:1;
+  font-size:12px;
+}
+.cmp-del:hover{ background:#c0392b; color:#fff; }
+.cmp-plot-panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:14px;
+}
+.cmp-plot-panel canvas{ width:100%; display:block; }

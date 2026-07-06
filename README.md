@@ -60,18 +60,20 @@ and be trivially inlined into a single file.
 ## Saving and loading scenarios
 
 Every scenario view has **Save inputs CSV** (the input time series, including any
-edits) and **Export outputs CSV** (model results after a run). **Load inputs CSV**
-does the reverse: it applies input series from a CSV file to the selected
-scenario, using the same custom-series mechanism as the in-app curve editor.
+edits) and **Export outputs CSV** (model results after a run); both prompt for a
+filename. **+ Load scenario (CSV)…** in the sidebar does the reverse: it creates
+a new scenario under **User scenarios** from a CSV file (× removes it again;
+user scenarios live for the browser session only).
 
 Loaded files do **not** need annual data. The format is one `Year` column plus
 any subset of input variables; rows can be at any years and cells can be left
 blank — each variable is interpolated through its own specified points (with the
 app's monotone spline, held constant outside the specified range). Variables not
-in the file keep the scenario's own values. Column names can be raw keys
-(`E_CO2_GtC_yr`), the names written by Save inputs CSV, or short aliases
-(`CO2`, `CH4`, `Aerosol`, `Ozone`, `N2O`, `Other`, `Volcanic`, `Solar`).
-So a complete externally-authored scenario can be as small as:
+in the file come from the scenario named in the file's `scenario` column (as
+written by Save inputs CSV), or are zero for an idealised experiment. Column
+names can be raw keys (`E_CO2_GtC_yr`), the names written by Save inputs CSV, or
+short aliases (`CO2`, `CH4`, `Aerosol`, `Ozone`, `N2O`, `Other`, `Volcanic`,
+`Solar`). So a complete externally-authored scenario can be as small as:
 
 ```csv
 Year,CO2,Volcanic
@@ -83,6 +85,14 @@ Year,CO2,Volcanic
 
 See [examples/custom-scenario-example.csv](examples/custom-scenario-example.csv).
 Files written by Save inputs CSV round-trip exactly.
+
+## Comparing runs
+
+**Compare runs** (bottom of the sidebar) overlays any output variable across
+several runs: add the run on screen (**Add current run**, or **Add to compare**
+in the floating display-controls panel), and/or load files saved earlier with
+Export outputs CSV (multiple files at once). Each run gets a colour and can be
+removed individually; runs persist for the browser session.
 
 ## Single-file build
 
