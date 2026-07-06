@@ -57,6 +57,23 @@ The scripts are plain (non-module) JavaScript loaded in dependency order and
 sharing one scope — which is what lets the same code run unbundled from `file://`
 and be trivially inlined into a single file.
 
+## Simple (emissions) vs full (ERF) inputs
+
+By default the model runs in **simple mode**, with emission inputs only — as in
+the original Carbonator: CO2 and CH4 emissions, human aerosol emissions
+(Tg SO2/yr, forcing proportional to the emission rate), volcanic aerosol
+injection (stratospheric optical depth per year, decaying with a ~1.2-yr
+lifetime, -20 W/m2 per unit AOD) and solar forcing. The minor forcings (ozone,
+N2O, other WMGHG) are excluded, so idealised experiments are exactly
+zero-forcing outside what the user sets — and a simple-mode historical run
+deliberately undershoots observations (a teaching opportunity).
+
+The **Full model (ERF inputs)** toggle in the scenario Controls switches to the
+complete forcing-driven model (an explainer appears the first time). Aerosol and
+volcanic curve edits are converted between representations on switching, so the
+scenario keeps its meaning. Emission/ERF conversions live in js/model.js
+(SIMPLE_INPUTS, volcEmisToErf/volcErfToEmis, addSimpleEmissionCols).
+
 ## Saving and loading scenarios
 
 Every scenario view has **Save inputs CSV** (the input time series, including any

@@ -225,16 +225,30 @@
 
 
 
+  // Input variables. In the default simple "emissions" input mode, aerosol and
+  // volcanic inputs switch to their pseudo-emission columns (simpleCol) and the
+  // minor forcings (simpleHidden) are excluded from the UI and the model.
   const INPUT_VARS = [
     {toggle:"CO2", col:"E_CO2_GtC_yr", canvas:"plotInCO2", mini:"miniCO2", yDigits:1, title:"CO₂", units:"GtC/yr"},
     {toggle:"CH4", col:"E_CH4_TgCH4_yr", canvas:"plotInCH4", mini:"miniCH4", yDigits:0, title:"CH₄", units:"Tg/yr"},
-    {toggle:"AER", col:"ERF_aerosol_rel1850_Wm2", canvas:"plotInAER", mini:"miniAER", yDigits:2, title:"Aerosol", units:"W/m²"},
-    {toggle:"O3", col:"ERF_o3_total_rel1850_Wm2", canvas:"plotInO3", mini:"miniO3", yDigits:2, title:"Ozone", units:"W/m²"},
-    {toggle:"N2O", col:"ERF_N2O_rel1850_Wm2", canvas:"plotInN2O", mini:"miniN2O", yDigits:2, title:"N₂O", units:"W/m²"},
-    {toggle:"OTHER", col:"ERF_otherWMGHG_rel1850_Wm2", canvas:"plotInOTHER", mini:"miniOTHER", yDigits:2, title:"Other WMGHG", units:"W/m²"},
-    {toggle:"VOLC", col:"ERF_volcanic_rel1850_Wm2", canvas:"plotInVOLC", mini:"miniVOLC", yDigits:2, title:"Volcanic", units:"W/m²"},
+    {toggle:"AER", col:"ERF_aerosol_rel1850_Wm2", canvas:"plotInAER", mini:"miniAER", yDigits:2, title:"Aerosol", units:"W/m²",
+      simpleCol:"E_SO2_Tg_yr", simpleTitle:"Aerosol emissions", simpleUnits:"Tg SO₂/yr", simpleDigits:0,
+      simpleSub:"Human aerosol (SO₂) emissions. Forcing is proportional to the emission rate (aerosols wash out within days)."},
+    {toggle:"O3", col:"ERF_o3_total_rel1850_Wm2", canvas:"plotInO3", mini:"miniO3", yDigits:2, title:"Ozone", units:"W/m²", simpleHidden:true},
+    {toggle:"N2O", col:"ERF_N2O_rel1850_Wm2", canvas:"plotInN2O", mini:"miniN2O", yDigits:2, title:"N₂O", units:"W/m²", simpleHidden:true},
+    {toggle:"OTHER", col:"ERF_otherWMGHG_rel1850_Wm2", canvas:"plotInOTHER", mini:"miniOTHER", yDigits:2, title:"Other WMGHG", units:"W/m²", simpleHidden:true},
+    {toggle:"VOLC", col:"ERF_volcanic_rel1850_Wm2", canvas:"plotInVOLC", mini:"miniVOLC", yDigits:2, title:"Volcanic", units:"W/m²",
+      simpleCol:"E_volcAOD_yr", simpleTitle:"Volcanic aerosol injection", simpleUnits:"AOD/yr", simpleDigits:3,
+      simpleSub:"Volcanic aerosol injected into the stratosphere (optical depth per year); it decays with a ~1.2-year lifetime."},
     {toggle:"SOLAR", col:"ERF_solar_rel1850_Wm2", canvas:"plotInSOLAR", mini:"miniSOLAR", yDigits:2, title:"Solar", units:"W/m²"},
   ];
+
+  // Mode-aware accessors (state is defined later; these are called at render time)
+  function inputVarActive(v){ return !(state.inputMode === "emissions" && v.simpleHidden); }
+  function inputVarCol(v){ return (state.inputMode === "emissions" && v.simpleCol) ? v.simpleCol : v.col; }
+  function inputVarTitle(v){ return (state.inputMode === "emissions" && v.simpleTitle) ? v.simpleTitle : v.title; }
+  function inputVarUnits(v){ return (state.inputMode === "emissions" && v.simpleUnits) ? v.simpleUnits : v.units; }
+  function inputVarDigits(v){ return (state.inputMode === "emissions" && v.simpleDigits != null) ? v.simpleDigits : v.yDigits; }
 
   const TOGGLE_DOM = {
     CO2: {cb:"togCO2", st:"stateCO2"},

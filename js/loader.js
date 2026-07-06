@@ -30,6 +30,8 @@
   const LOADER_ALIASES = {
     E_CO2_GtC_yr:               ["eco2gtcyr", "co2emissions", "co2"],
     E_CH4_TgCH4_yr:             ["ech4tgch4yr", "ch4emissions", "methane", "ch4"],
+    E_SO2_Tg_yr:                ["eso2tgyr", "aerosolemissions", "so2emissions", "so2"],
+    E_volcAOD_yr:               ["evolcaodyr", "volcanicaerosolinjection", "volcanicemissions", "volcanicinjection"],
     ERF_aerosol_rel1850_Wm2:    ["erfaerosolrel1850wm2", "aerosolerf", "aerosol", "aer"],
     ERF_o3_total_rel1850_Wm2:   ["erfo3totalrel1850wm2", "ozoneerf", "ozone", "o3"],
     ERF_N2O_rel1850_Wm2:        ["erfn2orel1850wm2", "n2oerf", "n2o"],
@@ -206,7 +208,28 @@
       applied.push({col, n: xs.length, from: Math.min(...xs), to: Math.max(...xs)});
     }
 
-    const specified = applied.map(a => (INPUT_VARS.find(v => v.col === a.col) || {title:a.col}).title).join(", ");
+    // Keep the emission and ERF representations of aerosol/volcanic in sync:
+    // whichever the file specified drives the other.
+    const has = c => Object.prototype.hasOwnProperty.call(parsed.points, c);
+    if (has("E_SO2_Tg_yr") && !has("ERF_aerosol_rel1850_Wm2")){
+      rows.forEach(r => { r.ERF_aerosol_rel1850_Wm2 = r.E_SO2_Tg_yr * SIMPLE_INPUTS.kAer; });
+    } else if (has("ERF_aerosol_rel1850_Wm2")){
+      rows.forEach(r => { r.E_SO2_Tg_yr = r.ERF_aerosol_rel1850_Wm2 / SIMPLE_INPUTS.kAer; });
+    }
+    if (has("E_volcAOD_yr") && !has("ERF_volcanic_rel1850_Wm2")){
+      const erf = volcEmisToErf(rows.map(r => r.E_volcAOD_yr));
+      rows.forEach((r, i) => { r.ERF_volcanic_rel1850_Wm2 = erf[i]; });
+    } else if (has("ERF_volcanic_rel1850_Wm2")){
+      const ev = volcErfToEmis(rows.map(r => r.ERF_volcanic_rel1850_Wm2));
+      rows.forEach((r, i) => { r.E_volcAOD_yr = ev[i]; });
+    }
+
+    const varTitle = c => {
+      const v = INPUT_VARS.find(q => q.col === c || q.simpleCol === c);
+      if (!v) return c;
+      return v.simpleCol === c ? (v.simpleTitle || v.title) : v.title;
+    };
+    const specified = applied.map(a => varTitle(a.col)).join(", ");
     BY_SCENARIO.set(key, rows);
     SCENARIOS.push({
       key, name, group: "user",
@@ -220,7 +243,10 @@
 
   function loaderSummaryModal(result, filename){
     const body = document.createElement("div");
-    const titleOf = c => (INPUT_VARS.find(v => v.col === c) || {title: c}).title;
+    const titleOf = c => {
+      const v = INPUT_VARS.find(q => q.col === c || q.simpleCol === c);
+      return v ? (v.simpleCol === c ? (v.simpleTitle || v.title) : v.title) : c;
+    };
     let html = `<p>Loaded <b>${filename}</b> as a new user scenario:</p><ul>`;
     for (const a of result.applied){
       html += `<li><b>${titleOf(a.col)}</b> — ${a.n} point${a.n === 1 ? "" : "s"}` +

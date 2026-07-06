@@ -58,7 +58,8 @@
     ctx.stroke();
 
     // Year ticks at nice values within the data range (bounds don't move)
-    const xTickVals = niceTicksWithin(xMin, xMax, options.xTicks ?? 5);
+    const xMaxTicks = Math.max(2, Math.min(options.xTicks ?? 5, Math.floor((w/dpr - pad.l - pad.r) / 55)));
+    const xTickVals = niceTicksWithin(xMin, xMax, xMaxTicks);
 
     // grid
     ctx.strokeStyle = "#e0e7ed";
@@ -274,7 +275,8 @@
     ctx.lineTo(w-pad.r*dpr, h-pad.b*dpr);
     ctx.stroke();
 
-    const xTickVals = niceTicksWithin(xMin, xMax, options.xTicks ?? 5);
+    const xMaxTicks = Math.max(2, Math.min(options.xTicks ?? 5, Math.floor((w/dpr - pad.l - pad.r) / 55)));
+    const xTickVals = niceTicksWithin(xMin, xMax, xMaxTicks);
 
     ctx.strokeStyle = "#e0e7ed";
     for (let i=0; i<=yTicks; i++){
@@ -461,7 +463,8 @@
     ctx.lineTo(w-pad.r*dpr, h-pad.b*dpr);
     ctx.stroke();
 
-    const xTickVals = niceTicksWithin(xMin, xMax, options.xTicks ?? 5);
+    const xMaxTicks = Math.max(2, Math.min(options.xTicks ?? 5, Math.floor((w/dpr - pad.l - pad.r) / 55)));
+    const xTickVals = niceTicksWithin(xMin, xMax, xMaxTicks);
 
     // grid
     ctx.strokeStyle = "#e0e7ed";

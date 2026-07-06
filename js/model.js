@@ -43,6 +43,53 @@
     seed: 1
   };
 
+  // --- Simple (emissions) input mode -----------------------------------------
+  // In the default "emissions" mode, aerosol and volcanic inputs are expressed as
+  // emissions rather than ERF (as in the original Carbonator):
+  //   human aerosol: ERF = kAer * E_SO2  (burden ~ emission rate: lifetime ~days)
+  //   volcanic:      dA/dt = E - A/vtau, ERF = vf * A  (A = stratospheric AOD)
+  // Minor forcings (O3, N2O, other WMGHG) are EXCLUDED (zero) in this mode, so
+  // idealised experiments are exactly zero-forcing outside what the user sets.
+  const SIMPLE_INPUTS = {
+    kAer: -0.009,  // W/m² per Tg SO2/yr (~110 Tg/yr in 2005 -> ~ -1 W/m²)
+    vf:   -20,     // W/m² per unit stratospheric AOD (Pinatubo AOD~0.15 -> ~ -3 W/m²)
+    vtau: 1.2      // yr, stratospheric aerosol decay (as in the original Carbonator)
+  };
+
+  // Annual volcanic AOD-injection series -> annual ERF series (exact annual step)
+  function volcEmisToErf(evals){
+    const {vf, vtau} = SIMPLE_INPUTS;
+    const e = Math.exp(-1/vtau);
+    let A = 0;
+    return evals.map(E => {
+      A = A*e + Math.max(0, E)*vtau*(1-e);
+      return vf*A;
+    });
+  }
+
+  // Annual volcanic ERF series -> annual AOD-injection series (inverse of above)
+  function volcErfToEmis(erfVals){
+    const {vf, vtau} = SIMPLE_INPUTS;
+    const e = Math.exp(-1/vtau);
+    let Aprev = 0;
+    return erfVals.map(f => {
+      const A = (f || 0)/vf;
+      const E = Math.max(0, (A - Aprev*e)/(vtau*(1-e)));
+      Aprev = A;
+      return E;
+    });
+  }
+
+  // Derive the pseudo-emission columns from the ERF columns (in place, per scenario)
+  function addSimpleEmissionCols(rows){
+    const {kAer} = SIMPLE_INPUTS;
+    const evolc = volcErfToEmis(rows.map(r => r.ERF_volcanic_rel1850_Wm2 || 0));
+    rows.forEach((r, i) => {
+      r.E_SO2_Tg_yr = (r.ERF_aerosol_rel1850_Wm2 || 0)/kAer;
+      r.E_volcAOD_yr = evolc[i];
+    });
+  }
+
   function carbonateFromCu(Cu, cfg){
     const term = 1 - (Cu / cfg.Alk);
     let disc = (cfg.k1*cfg.k1)*(term*term) - 4*cfg.k1*cfg.k2*(1 - 2*Cu/cfg.Alk);
@@ -67,6 +114,19 @@
       ERF_solar: buildSeries(scenarioRows, "ERF_solar_rel1850_Wm2"),
       ERF_volc: buildSeries(scenarioRows, "ERF_volcanic_rel1850_Wm2"),
     };
+
+    // Simple (emissions) input mode: aerosol/volcanic driven by emissions,
+    // minor forcings excluded.
+    const simple = params.inputMode === "emissions";
+    let volcA = 0; // stratospheric aerosol burden (AOD units)
+    let volcEmisByYear = null;
+    if (simple){
+      s.E_SO2 = buildSeries(scenarioRows, "E_SO2_Tg_yr");
+      // Volcanic injections are impulsive: treat them as annual blocks rather than
+      // spline-interpolating, so an eruption cannot leak into the preceding year.
+      volcEmisByYear = new Map(scenarioRows.map(r => [r.year, Math.max(0, r.E_volcAOD_yr || 0)]));
+      volcA = (scenarioRows[0].ERF_volcanic_rel1850_Wm2 || 0) / SIMPLE_INPUTS.vf;
+    }
 
     // EBM parameters
     const S = params.S;
@@ -157,19 +217,28 @@
     const out = [];
 
     for (let y=y0; y<=yN; y++){
-      let qSum = 0, qSum2 = 0;
+      let qSum = 0, qSum2 = 0, fVolcSum = 0;
       for (let mth=0; mth<12; mth++){
         const t = y + (mth+0.5)/12;
 
         const E_C = s.E_CO2.interp(t);
         const E_CH4_anth = s.E_CH4.interp(t);
 
-        const F_aer = s.ERF_aer.interp(t);
-        const F_o3  = s.ERF_o3.interp(t);
-        const F_n2o = s.ERF_N2O.interp(t);
-        const F_other = s.ERF_other.interp(t);
+        let F_aer, F_o3, F_n2o, F_other, F_volc;
         const F_solar = s.ERF_solar.interp(t);
-        const F_volc  = s.ERF_volc.interp(t);
+        if (simple){
+          // aerosol forcing proportional to emission rate; volcanic burden integrated
+          F_aer = SIMPLE_INPUTS.kAer * s.E_SO2.interp(t);
+          volcA += ((volcEmisByYear.get(y) ?? 0) - volcA/SIMPLE_INPUTS.vtau) * dt;
+          F_volc = SIMPLE_INPUTS.vf * volcA;
+          F_o3 = 0; F_n2o = 0; F_other = 0;
+        } else {
+          F_aer = s.ERF_aer.interp(t);
+          F_o3  = s.ERF_o3.interp(t);
+          F_n2o = s.ERF_N2O.interp(t);
+          F_other = s.ERF_other.interp(t);
+          F_volc  = s.ERF_volc.interp(t);
+        }
 
         // --- Carbon cycle update (CO2) ---
         const carb = carbonateFromCu(Cu, cfg);
@@ -205,6 +274,8 @@
         M = Math.max(M, 1e-6);
         const F_ch4 = 0.0316 * (Math.sqrt(M) - Math.sqrt(M0));
 
+        fVolcSum += F_volc;
+
         const F_total = F_co2 + F_ch4 + F_n2o + F_other + F_aer + F_o3 + F_solar + F_volc;
 
         // Internal variability heat exchange q(t)
@@ -239,14 +310,22 @@
         if (SL_ice < 0) SL_ice = 0;
       }
 
-      // Annual sample at year midpoint
+      // Annual sample at year midpoint (recorded forcings must match what the
+      // model actually applied, which differs between input modes)
       const tm = y + 0.5;
-      const F_aer_m = s.ERF_aer.interp(tm);
-      const F_o3_m  = s.ERF_o3.interp(tm);
-      const F_n2o_m = s.ERF_N2O.interp(tm);
-      const F_other_m = s.ERF_other.interp(tm);
       const F_solar_m = s.ERF_solar.interp(tm);
-      const F_volc_m  = s.ERF_volc.interp(tm);
+      let F_aer_m, F_o3_m, F_n2o_m, F_other_m, F_volc_m;
+      if (simple){
+        F_aer_m = SIMPLE_INPUTS.kAer * s.E_SO2.interp(tm);
+        F_volc_m = fVolcSum/12; // annual mean of the integrated volcanic forcing
+        F_o3_m = 0; F_n2o_m = 0; F_other_m = 0;
+      } else {
+        F_aer_m = s.ERF_aer.interp(tm);
+        F_o3_m  = s.ERF_o3.interp(tm);
+        F_n2o_m = s.ERF_N2O.interp(tm);
+        F_other_m = s.ERF_other.interp(tm);
+        F_volc_m  = s.ERF_volc.interp(tm);
+      }
 
       const carbY = carbonateFromCu(Cu, cfg);
 

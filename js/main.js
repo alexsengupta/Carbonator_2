@@ -1,12 +1,19 @@
   // ========================
   // Data table
   // ========================
-  function openDataTable(){
-    const rowsAll = buildWorkingRows();
-    const y0 = Math.min(state.viewStart ?? 1850, state.viewEnd ?? 2100);
-    const y1 = Math.max(state.viewStart ?? 1850, state.viewEnd ?? 2100);
-    const rows = rowsAll.filter(r=>r.year>=y0 && r.year<=y1);
-    const keyCols = [
+  // Input columns/display names follow the input mode (emissions vs full ERF)
+  function inputsHeaderMap(){
+    if (state.inputMode === "emissions"){
+      return [
+        ["year","Year"],
+        ["E_CO2_GtC_yr","CO₂ emissions (GtC/yr)"],
+        ["E_CH4_TgCH4_yr","CH₄ emissions (TgCH₄/yr)"],
+        ["E_SO2_Tg_yr","Aerosol emissions (Tg SO₂/yr)"],
+        ["E_volcAOD_yr","Volcanic aerosol injection (AOD/yr)"],
+        ["ERF_solar_rel1850_Wm2","Solar ERF (W/m² rel. 1850)"],
+      ];
+    }
+    return [
       ["year","Year"],
       ["E_CO2_GtC_yr","CO₂ emissions (GtC/yr)"],
       ["E_CH4_TgCH4_yr","CH₄ emissions (TgCH₄/yr)"],
@@ -17,6 +24,14 @@
       ["ERF_volcanic_rel1850_Wm2","Volcanic ERF (W/m² rel. 1850)"],
       ["ERF_solar_rel1850_Wm2","Solar ERF (W/m² rel. 1850)"],
     ];
+  }
+
+  function openDataTable(){
+    const rowsAll = buildWorkingRows();
+    const y0 = Math.min(state.viewStart ?? 1850, state.viewEnd ?? 2100);
+    const y1 = Math.max(state.viewStart ?? 1850, state.viewEnd ?? 2100);
+    const rows = rowsAll.filter(r=>r.year>=y0 && r.year<=y1);
+    const keyCols = inputsHeaderMap();
     const tableWrap = document.createElement("div");
     tableWrap.className = "table-wrap";
     const table = document.createElement("table");
@@ -53,17 +68,7 @@
 
   function downloadScenarioInputs(){
     const rows = buildWorkingRows();
-    const headerMap = [
-      ["year","Year"],
-      ["E_CO2_GtC_yr","CO₂ emissions (GtC/yr)"],
-      ["E_CH4_TgCH4_yr","CH₄ emissions (TgCH₄/yr)"],
-      ["ERF_aerosol_rel1850_Wm2","Aerosol ERF (W/m² rel. 1850)"],
-      ["ERF_o3_total_rel1850_Wm2","Ozone ERF (W/m² rel. 1850)"],
-      ["ERF_N2O_rel1850_Wm2","N₂O ERF (W/m² rel. 1850)"],
-      ["ERF_otherWMGHG_rel1850_Wm2","Other WMGHG ERF (W/m² rel. 1850)"],
-      ["ERF_volcanic_rel1850_Wm2","Volcanic ERF (W/m² rel. 1850)"],
-      ["ERF_solar_rel1850_Wm2","Solar ERF (W/m² rel. 1850)"],
-    ];
+    const headerMap = inputsHeaderMap();
     const cols = headerMap.map(d=>d[0]);
 
     const lines = [];
@@ -152,6 +157,13 @@
   bindToggle("togVOLC","VOLC");
   bindToggle("togSOLAR","SOLAR");
 
+  // simple (emissions) vs full (ERF) inputs
+  if (el("togFullModel")){
+    el("togFullModel").addEventListener("change", ()=>{
+      setInputMode(el("togFullModel").checked ? "full" : "emissions");
+    });
+  }
+
   // internal variability toggle (energy-conserving; default settings unless edited in Advanced)
   el("togIV").addEventListener("change", ()=>{
     if (!state.params.iv) state.params.iv = {...IV_DEFAULT};
@@ -171,7 +183,7 @@
 
       if (state.mode === "output"){
         const rows = buildWorkingRows();
-        state.lastOutput = runModel(rows, state.params);
+        state.lastOutput = runModel(rows, {...state.params, inputMode: state.inputMode});
       }
       renderAll();
     });
@@ -313,18 +325,23 @@
     renderAll();
   });
 
-  // Edit curve buttons (delegated)
+  // Edit curve buttons (delegated). In emissions mode the aerosol/volcanic
+  // buttons edit the pseudo-emission series instead of the ERF series.
   document.addEventListener("click", (e)=>{
     const btn = e.target.closest("[data-edit]");
     if (!btn) return;
-    const varKey = btn.getAttribute("data-edit");
+    let varKey = btn.getAttribute("data-edit");
+    if (state.inputMode === "emissions"){
+      const mv = INPUT_VARS.find(v => v.col === varKey);
+      if (mv && mv.simpleCol) varKey = mv.simpleCol;
+    }
     openCurveEditor(varKey);
   });
 
   // Run / reset
   el("btnRun").addEventListener("click", () => {
     const rows = buildWorkingRows();
-    state.lastOutput = runModel(rows, state.params);
+    state.lastOutput = runModel(rows, {...state.params, inputMode: state.inputMode});
     state.mode = "output";
     renderAll();
   });

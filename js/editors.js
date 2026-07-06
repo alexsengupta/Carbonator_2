@@ -11,7 +11,12 @@
       ? state.customSeries[varKey].slice()
       : baseVals.slice();
 
-    const metaInfo = INPUT_VARS[varKey] || {label: varKey, units: ""};
+    const mv = INPUT_VARS.find(v => v.col === varKey || v.simpleCol === varKey);
+    const metaInfo = mv
+      ? (mv.simpleCol === varKey
+          ? {label: mv.simpleTitle || mv.title, units: mv.simpleUnits || mv.units}
+          : {label: mv.title, units: mv.units})
+      : {label: varKey, units: ""};
     const title = metaInfo.label + (metaInfo.units ? ` (${metaInfo.units})` : ``);
     const level0 = state.curveDetailPerVar[varKey] ?? DEFAULTS.curveDetailLevel;
     const spacingOpts = [25,10,5,1];

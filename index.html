@@ -98,7 +98,15 @@
             <div class="smallpanel">
               <div class="label">Controls</div>
               <div class="hint" id="controlsHint">Toggle inputs on/off, then run the model.</div>
-              <div class="toggle-row" style="margin-top:10px;" title="Adds ENSO-like year-to-year variability using an energy-conserving stochastic heat exchange (tunable in Advanced parameters).">
+              <div class="toggle-row" style="margin-top:10px;" title="OFF (default): simple model with emission inputs; ozone, N₂O and other WMGHG forcings are excluded. ON: full model with effective radiative forcing (ERF) inputs, including the minor forcings.">
+                <label class="switch">
+                  <input type="checkbox" id="togFullModel" />
+                  <span class="slider"></span>
+                </label>
+                <div>Full model (ERF inputs)</div>
+                <div class="state" id="stateFullModel">OFF</div>
+              </div>
+              <div class="toggle-row" style="margin-top:6px;" title="Adds ENSO-like year-to-year variability using an energy-conserving stochastic heat exchange (tunable in Advanced parameters).">
                 <label class="switch">
                   <input type="checkbox" id="togIV" />
                   <span class="slider"></span>

@@ -127,11 +127,17 @@
                              ))));
   }
 
+  // Emission-column edits light up the badge of the corresponding ERF card
+  const BADGE_ALIAS = {
+    E_SO2_Tg_yr: "ERF_aerosol_rel1850_Wm2",
+    E_volcAOD_yr: "ERF_volcanic_rel1850_Wm2"
+  };
+
   function updateEditBadges(){
     // per-variable edited badges
     document.querySelectorAll('[id^="badge_"]').forEach(span=>{ span.style.display="none"; });
     for (const k of Object.keys(state.customSeries)){
-      const b = el("badge_"+k);
+      const b = el("badge_" + (BADGE_ALIAS[k] || k));
       if (b) b.style.display = "";
     }
     el("editBadge").innerHTML = hasAnyEdits() ? '<span class="badge">CUSTOM</span>' : '';
@@ -149,27 +155,71 @@
     return baseRows.map((r, idx) => {
       const o = {...r};
 
-      // apply custom series overrides
+      // apply custom series overrides (both ERF and pseudo-emission columns)
       for (const meta of INPUT_VARS){
-        const col = meta.col;
-        const custom = state.customSeries[col];
-        if (custom && custom.length === baseRows.length){
-          o[col] = custom[idx];
+        for (const col of [meta.col, meta.simpleCol]){
+          if (!col) continue;
+          const custom = state.customSeries[col];
+          if (custom && custom.length === baseRows.length){
+            o[col] = custom[idx];
+          }
         }
       }
 
-      // apply toggles: zero out disabled inputs
+      // apply toggles: zero out disabled inputs (both representations)
       if (!state.toggles.CO2) o.E_CO2_GtC_yr = 0;
       if (!state.toggles.CH4) o.E_CH4_TgCH4_yr = 0;
-      if (!state.toggles.AER) o.ERF_aerosol_rel1850_Wm2 = 0;
+      if (!state.toggles.AER){ o.ERF_aerosol_rel1850_Wm2 = 0; o.E_SO2_Tg_yr = 0; }
       if (!state.toggles.O3) o.ERF_o3_total_rel1850_Wm2 = 0;
       if (!state.toggles.N2O) o.ERF_N2O_rel1850_Wm2 = 0;
       if (!state.toggles.OTHER) o.ERF_otherWMGHG_rel1850_Wm2 = 0;
-      if (!state.toggles.VOLC) o.ERF_volcanic_rel1850_Wm2 = 0;
+      if (!state.toggles.VOLC){ o.ERF_volcanic_rel1850_Wm2 = 0; o.E_volcAOD_yr = 0; }
       if (!state.toggles.SOLAR) o.ERF_solar_rel1850_Wm2 = 0;
 
       return o;
     });
+  }
+
+  // Switch between simple (emissions) and full (ERF) inputs. Custom edits to
+  // aerosol/volcanic curves are converted to the other representation so the
+  // scenario means the same thing after the switch.
+  function setInputMode(mode){
+    if (mode === state.inputMode) return;
+    const cs = state.customSeries;
+    if (mode === "full"){
+      if (cs.E_SO2_Tg_yr){ cs.ERF_aerosol_rel1850_Wm2 = cs.E_SO2_Tg_yr.map(v => v*SIMPLE_INPUTS.kAer); delete cs.E_SO2_Tg_yr; }
+      if (cs.E_volcAOD_yr){ cs.ERF_volcanic_rel1850_Wm2 = volcEmisToErf(cs.E_volcAOD_yr); delete cs.E_volcAOD_yr; }
+    } else {
+      if (cs.ERF_aerosol_rel1850_Wm2){ cs.E_SO2_Tg_yr = cs.ERF_aerosol_rel1850_Wm2.map(v => v/SIMPLE_INPUTS.kAer); delete cs.ERF_aerosol_rel1850_Wm2; }
+      if (cs.ERF_volcanic_rel1850_Wm2){ cs.E_volcAOD_yr = volcErfToEmis(cs.ERF_volcanic_rel1850_Wm2); delete cs.ERF_volcanic_rel1850_Wm2; }
+    }
+    state.inputMode = mode;
+    state.lastOutput = null;
+    if (state.mode === "output") state.mode = "edit";
+    if (mode === "full" && !state.erfNoticeShown){
+      state.erfNoticeShown = true;
+      openFullModelNotice();
+    }
+    renderAll();
+  }
+
+  function openFullModelNotice(){
+    const body = document.createElement("div");
+    body.innerHTML = `
+      <p style="margin-top:0;">You have switched the model inputs from <b>emissions</b> to
+      <b>effective radiative forcing (ERF)</b> — the extra energy (W/m²) each factor adds to the climate system.</p>
+      <ul style="padding-left:18px; font-size:13px; line-height:1.45;">
+        <li><b>Human aerosols</b> are no longer emissions (Tg SO₂/yr) but their forcing directly.
+            In emissions mode the two are proportional, because aerosols wash out of the atmosphere within days.</li>
+        <li><b>Volcanic aerosols</b> are no longer an injection rate (optical depth per year) but the resulting forcing.
+            In emissions mode the injected aerosol decays with a ~1.2-year lifetime (−20 W/m² per unit optical depth).</li>
+        <li><b>Three additional forcings appear</b>: ozone, N₂O and other well-mixed greenhouse gases.
+            These are <i>excluded</i> in emissions mode — one reason a simple-mode run does not exactly match observations.</li>
+      </ul>
+      <p style="font-size:12px; color:#666; margin-bottom:0;">Any aerosol or volcanic curves you edited have been converted
+      to their ERF equivalents. Run the scenario again to see outputs.</p>
+    `;
+    openModal("Full model: forcing (ERF) inputs", body);
   }
 
   // ========================
@@ -291,6 +341,19 @@
     }
   }
 
+  function updateInputModeToggle(){
+    const cb = el("togFullModel");
+    if (!cb) return;
+    const full = state.inputMode === "full";
+    cb.checked = full;
+    const st = el("stateFullModel");
+    if (st) st.textContent = full ? "ON" : "OFF";
+    const hint = el("controlsHint");
+    if (hint) hint.textContent = full
+      ? "Full model: forcing (ERF) inputs, including ozone, N₂O and other WMGHG."
+      : "Simple model: emission inputs. Minor GHG forcings (O₃, N₂O, other) are off.";
+  }
+
   function updateIVToggle(){
     const cb = el("togIV");
     if (!cb) return;
@@ -375,8 +438,26 @@
     const years = pickByIdx(yearsAll, idx);
 
     for (const meta of INPUT_VARS){
-      const baseAll = rows.map(r=>r[meta.col]);
-      const effAll = working.map(r=>r[meta.col]);
+      const card = el(meta.canvas).closest(".plot-card");
+      const active = inputVarActive(meta);
+      if (card) card.style.display = active ? "" : "none";
+      if (!active) continue;
+
+      // title/subtitle follow the input mode for the dual-representation cards
+      if (meta.simpleCol && card){
+        const t = card.querySelector(".title");
+        const sub = card.querySelector(".subtitle");
+        if (t){
+          if (!meta._fullTitle){ meta._fullTitle = t.textContent; meta._fullSub = sub ? sub.textContent : ""; }
+          const simple = state.inputMode === "emissions";
+          t.textContent = simple ? meta.simpleTitle : meta._fullTitle;
+          if (sub) sub.textContent = simple ? meta.simpleSub : meta._fullSub;
+        }
+      }
+
+      const col = inputVarCol(meta);
+      const baseAll = rows.map(r=>r[col]);
+      const effAll = working.map(r=>r[col]);
       const base = pickByIdx(baseAll, idx);
       const eff = pickByIdx(effAll, idx);
       const enabled = !!state.toggles[meta.toggle];
@@ -384,7 +465,7 @@
       plotLines(el(meta.canvas), [
         {x: years, y: base, label:"SSP", color:"rgba(0,0,0,0.25)", width:1.5},
         {x: years, y: eff, label: enabled ? "used" : "disabled", color: enabled ? "#4d8bff" : "rgba(0,0,0,0.22)", width:2}
-      ], {yLabel: meta.units, yDigits: meta.yDigits, vline:2020, legend:false});
+      ], {yLabel: inputVarUnits(meta), yDigits: inputVarDigits(meta), vline:2020, legend:false});
     }
   }
 
@@ -404,9 +485,22 @@
     });
 
     for (const meta of INPUT_VARS){
+      const block = el(meta.mini).closest(".mini-block");
+      const active = inputVarActive(meta);
+      if (block) block.style.display = active ? "" : "none";
+      if (!active) continue;
+
+      if (meta.simpleCol && block){
+        const t = block.querySelector(".mini-title");
+        if (t){
+          if (!meta._fullMiniTitle) meta._fullMiniTitle = t.textContent;
+          t.textContent = state.inputMode === "emissions" ? meta.simpleTitle : meta._fullMiniTitle;
+        }
+      }
+
       plotLines(el(meta.mini), [
-        mk(working.map(r=>r[meta.col]), !!state.toggles[meta.toggle])
-      ], {yLabel: meta.units, yDigits: meta.yDigits, vline:2020, legend:false, xTicks:4, yTicks:4});
+        mk(working.map(r=>r[inputVarCol(meta)]), !!state.toggles[meta.toggle])
+      ], {yLabel: inputVarUnits(meta), yDigits: inputVarDigits(meta), vline:2020, legend:false, xTicks:4, yTicks:4});
     }
   }
 
@@ -644,6 +738,7 @@
     renderScenarioHeader();
     updateToggleLabels();
     updateIVToggle();
+    updateInputModeToggle();
     updateViewRangeUI();
 
     const isOutput = (state.mode === "output");

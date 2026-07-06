@@ -18,6 +18,10 @@
     SCENARIOS.push({key:t.key, name:t.name, group:t.group, img:t.img, desc:t.desc});
   }
 
+  // Derive the simple-mode pseudo-emission columns (aerosol Tg/yr, volcanic AOD/yr)
+  // for every scenario, including the teaching experiments registered above.
+  for (const rows of BY_SCENARIO.values()) addSimpleEmissionCols(rows);
+
   // Keys of user-loaded scenarios (in-memory only; not persisted across reloads)
   const USER_SCENARIOS = [];
 
@@ -81,6 +85,8 @@
   let state = {
     scenario: null,
     mode: "home", // home | edit | output
+    inputMode: "emissions", // "emissions" (simple, default) | "full" (ERF inputs)
+    erfNoticeShown: false,  // full-model explainer shown once per session
     uiMode: DEFAULTS.uiMode,
     viewStart: DEFAULTS.viewStart,
     viewEnd: DEFAULTS.viewEnd,
