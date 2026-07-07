@@ -417,8 +417,10 @@
               
               <div class="out-block" id="blockLocal" style="display:none;">
                 <div class="out-block-head">
-                  <div class="out-title">Local projections</div>
-                  <div class="out-sub">Pattern scaling: local changes estimated by scaling a 1° CMIP6-derived pattern (12-model ensemble median) with the modelled global mean temperature.</div>
+                  <div class="out-title" style="display:flex; align-items:center; gap:10px;">Local projections
+                    <button class="btn" id="btnPatternInfo" type="button" style="padding:3px 9px; font-size:11px; font-weight:400;" title="How the local maps work and where the pattern comes from.">More info</button>
+                  </div>
+                  <div class="out-sub">Local change = the global warming from your run × a map pattern from real climate models. Click the map to pick a location.</div>
                 </div>
 
                 <div class="localWrap">
@@ -444,7 +446,6 @@
 
                       <canvas id="mapCanvas" class="mapCanvas" width="360" height="180" aria-label="Pattern map"></canvas>
                       <div class="legendRow" id="mapLegend"></div>
-                      <div class="small muted" id="patternSourceNote"></div>
                     </div>
                   </div>
 

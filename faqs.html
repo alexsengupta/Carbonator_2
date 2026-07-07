@@ -49,6 +49,15 @@
       <summary>What are the SSP scenarios?</summary>
       <p>The Shared Socioeconomic Pathways (SSPs) are the standard future scenarios used in the IPCC Sixth Assessment Report. Each combines a storyline of how society might develop with a resulting pathway of emissions and radiative forcing. Carbonator&nbsp;2 includes SSP1-1.9 (very strong mitigation), SSP1-2.6 (strong mitigation), SSP2-4.5 (an intermediate pathway) and SSP5-8.5 (a high, fossil-fuel-intensive pathway). They replace the older RCP scenarios used in the original Carbonator.</p>
     </details>
+
+    <details>
+      <summary>How do the local maps work? (pattern scaling)</summary>
+      <p>Carbonator works out <strong>one number per year</strong>: the average temperature change of the whole planet. But warming is not shared out evenly — land warms faster than the ocean, and the Arctic warms fastest of all. To estimate change <em>where you live</em>, the app uses a trick called <strong>pattern scaling</strong>:</p>
+      <p style="text-align:center;"><strong>local change &nbsp;=&nbsp; global warming &nbsp;×&nbsp; the map value at your location</strong></p>
+      <p>The map is the pattern. On the temperature map, a value of 2 means that place warms twice as fast as the global average, while 0.8 means it lags behind (like the oceans around Australia). The rainfall map shows the percentage change in precipitation for every degree of global warming — some regions get wetter, others (like the Mediterranean) get drier.</p>
+      <p><strong>Where does the map come from?</strong> We compared the end of this century (2071–2100, under a high-emission scenario) with the pre-industrial climate (1850–1900) in twelve of the world's full climate models (the CMIP6 ensemble), divided each model's local change by its own global warming, and took the middle value of the twelve at every point on a 1°×1° grid. Because you can see the continents appear on the map purely from the land–ocean warming contrast, this is also a nice demonstration that the pattern is real physics, not drawn by hand.</p>
+      <p>Keep in mind it is an approximation: it works well for steady greenhouse-gas-driven warming, but real regional change also depends on things that do not simply scale with global temperature (such as aerosol pollution and shifting ocean currents), and natural year-to-year variability is not included.</p>
+    </details>
   </div>
 
   <footer class="site-footer">

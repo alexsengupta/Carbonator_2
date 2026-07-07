@@ -148,7 +148,6 @@
     if (!canvas) return;
 
     const legend = el("mapLegend");
-    const note = el("patternSourceNote");
 
     if (!PATTERN){
       const ctx = canvas.getContext("2d");
@@ -159,7 +158,6 @@
       ctx.font = "12px sans-serif";
       ctx.fillText("Pattern file missing", 10, 20);
       if (legend) legend.textContent = "";
-      if (note) note.textContent = "";
       return;
     }
 
@@ -191,9 +189,36 @@
         legend.textContent = `Temp amplification: ${pat.tasAmp.toFixed(2)} °C/°C  (map range ${cache.vmin.toFixed(2)} to ${cache.vmax.toFixed(2)})`;
       }
     }
-    if (note){
-      note.textContent = PATTERN.meta.source || "";
-    }
+  }
+
+  // "More info" modal for the Local projections panel: how pattern scaling
+  // works (written for a school audience) plus the data provenance, pulled
+  // live from the pattern file's own metadata.
+  function openPatternInfo(){
+    const body = document.createElement("div");
+    const src = (PATTERN && PATTERN.meta && PATTERN.meta.source) || "pattern file metadata unavailable";
+    const created = (PATTERN && PATTERN.meta && PATTERN.meta.created) ? ` Generated ${PATTERN.meta.created}.` : "";
+    body.innerHTML = `
+      <p style="margin-top:0;">Carbonator works out <b>one number per year</b>: the average temperature change of the
+      whole planet. But warming is not shared out evenly — land warms faster than the ocean, and the Arctic warms
+      fastest of all.</p>
+      <p>To estimate change <i>where you live</i>, we use a trick called <b>pattern scaling</b>:</p>
+      <p style="text-align:center; font-weight:700;">local change &nbsp;=&nbsp; global warming &nbsp;×&nbsp; the map value at your location</p>
+      <ul style="padding-left:18px; font-size:13px; line-height:1.5;">
+        <li>On the <b>temperature map</b>, a value of 2 means that place warms twice as fast as the global average;
+            0.8 means it lags behind (like the oceans around Australia).</li>
+        <li>The <b>rainfall map</b> shows the percentage change in precipitation for every degree of global warming —
+            blue regions get wetter, brown regions get drier.</li>
+      </ul>
+      <p><b>Where does the map come from?</b> We compared the end of this century (2071–2100, high-emission scenario)
+      with the pre-industrial climate (1850–1900) in twelve of the world's full climate models, divided each model's
+      local change by its own global warming, and took the middle value of the twelve at every point on a 1° grid.</p>
+      <p style="font-size:12px; color:#666;">${src}.${created}</p>
+      <p style="font-size:12px; color:#666; margin-bottom:0;"><b>Keep in mind:</b> this is an approximation. It works
+      well for steady greenhouse warming, but real local change also depends on things that don't scale with global
+      temperature (like aerosol pollution and shifting ocean currents), and year-to-year variability is not included.</p>
+    `;
+    openModal("Local projections — how it works", body);
   }
 
   function syncLocalInputs(){

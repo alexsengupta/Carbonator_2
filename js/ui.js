@@ -210,24 +210,25 @@
   function openFullModelNotice(){
     const body = document.createElement("div");
     body.innerHTML = `
-      <p style="margin-top:0;">You have switched the model inputs from <b>emissions</b> to
-      <b>effective radiative forcing (ERF)</b> — the extra energy (W/m²) each factor adds to the climate system.</p>
-      <ul style="padding-left:18px; font-size:13px; line-height:1.45;">
-        <li><b>Human aerosols</b> are no longer emissions (Tg SO₂/yr) but their forcing directly.
-            In emissions mode the two are proportional, because aerosols wash out of the atmosphere within days.</li>
-        <li><b>Volcanic aerosols</b> are no longer an injection rate (optical depth per year) but the resulting forcing.
-            In emissions mode the injected aerosol decays with a ~1.2-year lifetime (−20 W/m² per unit optical depth).</li>
-        <li><b>Three additional forcings appear</b>: ozone, N₂O and other well-mixed greenhouse gases.
-            These are <i>excluded</i> in emissions mode — one reason a simple-mode run does not exactly match observations.</li>
-        <li><b>Climate sensitivity changes too</b>: the full model uses 3.0&nbsp;°C per CO₂ doubling (the IPCC best
-            estimate), while the simple model uses 3.7&nbsp;°C (within the IPCC likely range of 2.5–4.0&nbsp;°C) to
-            partly compensate for the excluded forcings. Even so, the simple model warms less than observed over the
-            historical period — worth asking why!</li>
+      <p style="margin-top:0;">You have switched from the <b>simple model</b> to the <b>full model</b>.
+      Here is what changes:</p>
+      <ul style="padding-left:18px; font-size:13px; line-height:1.55;">
+        <li><b>What the sliders mean.</b> In the simple model you controlled what we put <i>into</i> the air —
+            tonnes of CO₂, methane and aerosol particles. The full model instead controls the <b>heating power</b>
+            each factor adds to the planet, measured in watts per square metre (W/m²). One W/m² is like spreading
+            small LED bulbs over the whole planet, one for every couple of square metres — it sounds tiny, but over
+            the whole Earth it is an enormous amount of extra heat.</li>
+        <li><b>Three extra heat-trapping gases appear.</b> Ozone, nitrous oxide (N₂O) and a group of other industrial
+            gases. The simple model leaves them out to stay simple — that is one reason its historical warming comes
+            out lower than what thermometers actually measured. Now they are included.</li>
+        <li><b>The model's sensitivity changes slightly.</b> "Climate sensitivity" is how much the planet eventually
+            warms if CO₂ doubles. The simple model uses 3.7&nbsp;°C and the full model uses 3.0&nbsp;°C — both are
+            inside the range scientists consider likely (2.5–4&nbsp;°C).</li>
       </ul>
-      <p style="font-size:12px; color:#666; margin-bottom:0;">Any aerosol or volcanic curves you edited have been converted
-      to their ERF equivalents. Run the scenario again to see outputs.</p>
+      <p style="font-size:12px; color:#666; margin-bottom:0;">Any aerosol or volcano curves you edited have been
+      converted automatically. Press <b>Run scenario</b> to see the results.</p>
     `;
-    openModal("Full model: forcing (ERF) inputs", body);
+    openModal("Full model: what just changed?", body);
   }
 
   // ========================

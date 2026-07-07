@@ -374,6 +374,9 @@
   el("btnOpenInputsCSV").addEventListener("click", ()=>downloadText("rcmip_v5.1.0_collated_forcing_emissions_annualfilled_ssp119_ssp126_ssp245_ssp585_World_1850-2100.csv", CSV_DATA_TEXT.trim(), "text/csv"));
 
   el("btnViewData").addEventListener("click", ()=>openDataTable());
+  if (el("btnPatternInfo")){
+    el("btnPatternInfo").addEventListener("click", ()=>openPatternInfo());
+  }
 
   // Floating display-controls panel: collapse/expand
   if (el("fpCollapse")){
