@@ -137,6 +137,28 @@ in the floating display-controls panel), and/or load files saved earlier with
 Export outputs CSV (multiple files at once). Each run gets a colour and can be
 removed individually; runs persist for the browser session.
 
+## Pattern scaling data
+
+The "Local patterns" output panel scales a 1x1 degree gridded pattern by the
+modelled global-mean temperature. The coefficients (local warming per degC of
+global warming; local precipitation change in %/degC) are generated from the
+public Pangeo/Google Cloud CMIP6 archive by
+[tools/make_patterns_cmip6.py](tools/make_patterns_cmip6.py):
+
+```bash
+pip install numpy xarray scipy pandas gcsfs zarr cftime
+python3 tools/make_patterns_cmip6.py --selftest     # validate pipeline, no network
+python3 tools/make_patterns_cmip6.py                # ~12 models, ssp585, -> data/patterns_cmip6_1deg.js
+```
+
+Method: per model, epoch difference (2071-2100 under the SSP minus 1850-1900
+historical) divided by that model's global-mean warming; bilinear regrid to 1
+degree; ensemble median. Precipitation is % of the local 1850-1900 mean per
+degC, masked where the base climate is drier than 0.1 mm/day and clipped to
++-12 %/degC. The app loads whichever pattern file index.html points at
+(`data/patterns_synthetic_1deg.js` is the original synthetic placeholder, kept
+for reference).
+
 ## Single-file build
 
 To produce one self-contained HTML file (handy for email or offline use):
