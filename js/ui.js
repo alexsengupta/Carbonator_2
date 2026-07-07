@@ -127,17 +127,11 @@
                              ))));
   }
 
-  // Emission-column edits light up the badge of the corresponding ERF card
-  const BADGE_ALIAS = {
-    E_SO2_Tg_yr: "ERF_aerosol_rel1850_Wm2",
-    E_volcAOD_yr: "ERF_volcanic_rel1850_Wm2"
-  };
-
   function updateEditBadges(){
     // per-variable edited badges
     document.querySelectorAll('[id^="badge_"]').forEach(span=>{ span.style.display="none"; });
     for (const k of Object.keys(state.customSeries)){
-      const b = el("badge_" + (BADGE_ALIAS[k] || k));
+      const b = el("badge_" + k);
       if (b) b.style.display = "";
     }
     el("editBadge").innerHTML = hasAnyEdits() ? '<span class="badge">CUSTOM</span>' : '';
@@ -170,9 +164,9 @@
       if (!state.toggles.CO2) o.E_CO2_GtC_yr = 0;
       if (!state.toggles.CH4) o.E_CH4_TgCH4_yr = 0;
       if (!state.toggles.AER){ o.ERF_aerosol_rel1850_Wm2 = 0; o.E_SO2_Tg_yr = 0; }
-      if (!state.toggles.O3) o.ERF_o3_total_rel1850_Wm2 = 0;
-      if (!state.toggles.N2O) o.ERF_N2O_rel1850_Wm2 = 0;
-      if (!state.toggles.OTHER) o.ERF_otherWMGHG_rel1850_Wm2 = 0;
+      if (!state.toggles.O3){ o.ERF_o3_total_rel1850_Wm2 = 0; o.E_O3prec_Tg_yr = 0; }
+      if (!state.toggles.N2O){ o.ERF_N2O_rel1850_Wm2 = 0; o.E_N2O_Tg_yr = 0; }
+      if (!state.toggles.OTHER){ o.ERF_otherWMGHG_rel1850_Wm2 = 0; o.E_XGHG_kt_yr = 0; }
       if (!state.toggles.VOLC){ o.ERF_volcanic_rel1850_Wm2 = 0; o.E_volcAOD_yr = 0; }
       if (!state.toggles.SOLAR) o.ERF_solar_rel1850_Wm2 = 0;
 
@@ -180,19 +174,11 @@
     });
   }
 
-  // Switch between simple (emissions) and full (ERF) inputs. Custom edits to
-  // aerosol/volcanic curves are converted to the other representation so the
-  // scenario means the same thing after the switch.
+  // Switch between the simple model (CO2, CH4, aerosols, volcanoes) and the
+  // full model (adds N2O, ozone precursors, synthetic gases). Both are
+  // emission-driven, so curve edits carry over unchanged.
   function setInputMode(mode){
     if (mode === state.inputMode) return;
-    const cs = state.customSeries;
-    if (mode === "full"){
-      if (cs.E_SO2_Tg_yr){ cs.ERF_aerosol_rel1850_Wm2 = cs.E_SO2_Tg_yr.map(v => v*SIMPLE_INPUTS.kAer); delete cs.E_SO2_Tg_yr; }
-      if (cs.E_volcAOD_yr){ cs.ERF_volcanic_rel1850_Wm2 = volcEmisToErf(cs.E_volcAOD_yr); delete cs.E_volcAOD_yr; }
-    } else {
-      if (cs.ERF_aerosol_rel1850_Wm2){ cs.E_SO2_Tg_yr = cs.ERF_aerosol_rel1850_Wm2.map(v => v/SIMPLE_INPUTS.kAer); delete cs.ERF_aerosol_rel1850_Wm2; }
-      if (cs.ERF_volcanic_rel1850_Wm2){ cs.E_volcAOD_yr = volcErfToEmis(cs.ERF_volcanic_rel1850_Wm2); delete cs.ERF_volcanic_rel1850_Wm2; }
-    }
     // Each mode has its own default climate sensitivity; follow it unless the
     // user has set a custom value in the parameter editor.
     const sWasDefault = state.params.S === defaultS();
@@ -211,22 +197,23 @@
     const body = document.createElement("div");
     body.innerHTML = `
       <p style="margin-top:0;">You have switched from the <b>simple model</b> to the <b>full model</b>.
-      Here is what changes:</p>
+      Three more types of emissions appear:</p>
       <ul style="padding-left:18px; font-size:13px; line-height:1.55;">
-        <li><b>What the sliders mean.</b> In the simple model you controlled what we put <i>into</i> the air —
-            tonnes of CO₂, methane and aerosol particles. The full model instead controls the <b>heating power</b>
-            each factor adds to the planet, measured in watts per square metre (W/m²). One W/m² is like spreading
-            small LED bulbs over the whole planet, one for every couple of square metres — it sounds tiny, but over
-            the whole Earth it is an enormous amount of extra heat.</li>
-        <li><b>Three extra heat-trapping gases appear.</b> Ozone, nitrous oxide (N₂O) and a group of other industrial
-            gases. The simple model leaves them out to stay simple — that is one reason its historical warming comes
-            out lower than what thermometers actually measured. Now they are included.</li>
-        <li><b>The model's sensitivity changes slightly.</b> "Climate sensitivity" is how much the planet eventually
-            warms if CO₂ doubles. The simple model uses 3.7&nbsp;°C and the full model uses 3.0&nbsp;°C — both are
-            inside the range scientists consider likely (2.5–4&nbsp;°C).</li>
+        <li><b>N₂O (nitrous oxide)</b> — mostly from farming and fertilisers. A strong greenhouse gas that
+            stays in the air for about 120 years.</li>
+        <li><b>Ozone-forming pollution</b> — gases from traffic and industry that create ozone near the
+            ground, which traps heat. It disappears within days if emissions stop.</li>
+        <li><b>Synthetic gases</b> — industrial chemicals like CFCs and HFCs. Watch their emissions peak
+            around 1990 and then fall: that is the Montreal Protocol, the world's most successful
+            environmental agreement.</li>
       </ul>
-      <p style="font-size:12px; color:#666; margin-bottom:0;">Any aerosol or volcano curves you edited have been
-      converted automatically. Press <b>Run scenario</b> to see the results.</p>
+      <p style="font-size:13px;">The simple model leaves these out to stay simple — that is one reason its
+      historical warming comes out lower than what thermometers actually measured. The full model also uses a
+      slightly different <b>climate sensitivity</b> (how much the planet eventually warms if CO₂ doubles):
+      3.0&nbsp;°C instead of the simple model's 3.7&nbsp;°C — both inside the range scientists consider
+      likely (2.5–4&nbsp;°C).</p>
+      <p style="font-size:12px; color:#666; margin-bottom:0;">Your edited curves carry over unchanged.
+      Press <b>Run scenario</b> to see the results.</p>
     `;
     openModal("Full model: what just changed?", body);
   }
@@ -359,8 +346,8 @@
     if (st) st.textContent = full ? "ON" : "OFF";
     const hint = el("controlsHint");
     if (hint) hint.textContent = full
-      ? "Full model: forcing (ERF) inputs, including ozone, N₂O and other WMGHG."
-      : "Simple model: emission inputs. Minor GHG forcings (O₃, N₂O, other) are off.";
+      ? "Full model: all emission inputs, including N₂O, ozone precursors and synthetic gases."
+      : "Simple model: CO₂, CH₄, aerosols and volcanoes. Minor gases are off.";
   }
 
   function updateIVToggle(){
@@ -598,7 +585,7 @@
     if (state.outputPanels.local){
       syncLocalInputs();
       renderPatternMap();
-      renderLocalSeries(years, out.map(r=>((r.T||0)-baseT)));
+      renderLocalSeries(years, out.map(r=>((r.T||0)-baseT)), out.map(r=>r.SL_total_m));
     }
 
     if (state.outputPanels.sea){

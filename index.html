@@ -98,12 +98,12 @@
             <div class="smallpanel">
               <div class="label">Controls</div>
               <div class="hint" id="controlsHint">Toggle inputs on/off, then run the model.</div>
-              <div class="toggle-row" style="margin-top:10px;" title="OFF (default): simple model with emission inputs; ozone, N₂O and other WMGHG forcings are excluded. ON: full model with effective radiative forcing (ERF) inputs, including the minor forcings.">
+              <div class="toggle-row" style="margin-top:10px;" title="OFF (default): simple model — CO₂, CH₄, aerosols and volcanoes only. ON: full model — adds N₂O, ozone-forming pollution and synthetic industrial gases (all as emissions).">
                 <label class="switch">
                   <input type="checkbox" id="togFullModel" />
                   <span class="slider"></span>
                 </label>
-                <div>Full model (ERF inputs)</div>
+                <div>Full model (all gases)</div>
                 <div class="state" id="stateFullModel">OFF</div>
               </div>
               <div class="toggle-row" style="margin-top:6px;" title="Adds ENSO-like year-to-year variability using an energy-conserving stochastic heat exchange (tunable in Advanced parameters).">
@@ -194,8 +194,8 @@
           <div class="plot-card">
             <div class="plot-row">
               <div class="plot-left">
-                <div class="title">Aerosol ERF</div>
-                <div class="subtitle">Effective radiative forcing from anthropogenic aerosols (W m⁻²).</div>
+                <div class="title">Aerosol Emissions</div>
+                <div class="subtitle">Human aerosol (SO₂) emissions. The cooling effect is proportional to the emission rate — aerosols wash out of the air within days.</div>
                 <div class="toggle-row">
                   <label class="switch">
                     <input type="checkbox" id="togAER" checked />
@@ -205,8 +205,8 @@
                   <div class="state" id="stateAER">ON</div>
                 </div>
                 <div class="toggle-row advOnly" style="margin-top:8px;">
-                  <button class="btn" type="button" data-edit="ERF_aerosol_rel1850_Wm2">Edit curve…</button>
-                  <span class="badge" id="badge_ERF_aerosol_rel1850_Wm2" style="display:none;">EDITED</span>
+                  <button class="btn" type="button" data-edit="E_SO2_Tg_yr">Edit curve…</button>
+                  <span class="badge" id="badge_E_SO2_Tg_yr" style="display:none;">EDITED</span>
                 </div>
               </div>
               <div class="plot-right">
@@ -219,8 +219,8 @@
           <div class="plot-card">
             <div class="plot-row">
               <div class="plot-left">
-                <div class="title">Ozone ERF</div>
-                <div class="subtitle">Effective radiative forcing from ozone (W m⁻²).</div>
+                <div class="title">Ozone Precursor Emissions</div>
+                <div class="subtitle">Pollution that forms ozone near the ground (NOx, CO and other gases from traffic and industry). The warming effect is proportional to the emission rate. Index units, roughly Tg per year.</div>
                 <div class="toggle-row">
                   <label class="switch">
                     <input type="checkbox" id="togO3" checked />
@@ -230,8 +230,8 @@
                   <div class="state" id="stateO3">ON</div>
                 </div>
                 <div class="toggle-row advOnly" style="margin-top:8px;">
-                  <button class="btn" type="button" data-edit="ERF_o3_total_rel1850_Wm2">Edit curve…</button>
-                  <span class="badge" id="badge_ERF_o3_total_rel1850_Wm2" style="display:none;">EDITED</span>
+                  <button class="btn" type="button" data-edit="E_O3prec_Tg_yr">Edit curve…</button>
+                  <span class="badge" id="badge_E_O3prec_Tg_yr" style="display:none;">EDITED</span>
                 </div>
               </div>
               <div class="plot-right">
@@ -244,8 +244,8 @@
           <div class="plot-card">
             <div class="plot-row">
               <div class="plot-left">
-                <div class="title">N₂O ERF</div>
-                <div class="subtitle">Effective radiative forcing from nitrous oxide (W m⁻²).</div>
+                <div class="title">N₂O Emissions</div>
+                <div class="subtitle">Nitrous oxide, mostly from farming and fertilisers (Tg N₂O per year). A strong greenhouse gas that stays in the air for about 120 years.</div>
                 <div class="toggle-row">
                   <label class="switch">
                     <input type="checkbox" id="togN2O" checked />
@@ -255,8 +255,8 @@
                   <div class="state" id="stateN2O">ON</div>
                 </div>
                 <div class="toggle-row advOnly" style="margin-top:8px;">
-                  <button class="btn" type="button" data-edit="ERF_N2O_rel1850_Wm2">Edit curve…</button>
-                  <span class="badge" id="badge_ERF_N2O_rel1850_Wm2" style="display:none;">EDITED</span>
+                  <button class="btn" type="button" data-edit="E_N2O_Tg_yr">Edit curve…</button>
+                  <span class="badge" id="badge_E_N2O_Tg_yr" style="display:none;">EDITED</span>
                 </div>
               </div>
               <div class="plot-right">
@@ -269,8 +269,8 @@
           <div class="plot-card">
             <div class="plot-row">
               <div class="plot-left">
-                <div class="title">Other WMGHG ERF</div>
-                <div class="subtitle">Effective radiative forcing from other well-mixed greenhouse gases (W m⁻²).</div>
+                <div class="title">Synthetic Gas Emissions</div>
+                <div class="subtitle">Industrial gases like CFCs and HFCs, treated as one equivalent gas (kt CFC-12-equivalent per year, ~100-year lifetime). Look for the peak around 1990 — that is the Montreal Protocol working.</div>
                 <div class="toggle-row">
                   <label class="switch">
                     <input type="checkbox" id="togOTHER" checked />
@@ -280,8 +280,8 @@
                   <div class="state" id="stateOTHER">ON</div>
                 </div>
                 <div class="toggle-row advOnly" style="margin-top:8px;">
-                  <button class="btn" type="button" data-edit="ERF_otherWMGHG_rel1850_Wm2">Edit curve…</button>
-                  <span class="badge" id="badge_ERF_otherWMGHG_rel1850_Wm2" style="display:none;">EDITED</span>
+                  <button class="btn" type="button" data-edit="E_XGHG_kt_yr">Edit curve…</button>
+                  <span class="badge" id="badge_E_XGHG_kt_yr" style="display:none;">EDITED</span>
                 </div>
               </div>
               <div class="plot-right">
@@ -294,8 +294,8 @@
           <div class="plot-card">
             <div class="plot-row">
               <div class="plot-left">
-                <div class="title">Volcanic ERF</div>
-                <div class="subtitle">Natural forcing from volcanic aerosols (W m⁻²).</div>
+                <div class="title">Volcanic Aerosol Injection</div>
+                <div class="subtitle">Volcanic aerosol injected into the stratosphere (optical depth per year). It reflects sunlight and decays away with a ~1.2-year lifetime.</div>
                 <div class="toggle-row">
                   <label class="switch">
                     <input type="checkbox" id="togVOLC" checked />
@@ -305,8 +305,8 @@
                   <div class="state" id="stateVOLC">ON</div>
                 </div>
                 <div class="toggle-row advOnly" style="margin-top:8px;">
-                  <button class="btn" type="button" data-edit="ERF_volcanic_rel1850_Wm2">Edit curve…</button>
-                  <span class="badge" id="badge_ERF_volcanic_rel1850_Wm2" style="display:none;">EDITED</span>
+                  <button class="btn" type="button" data-edit="E_volcAOD_yr">Edit curve…</button>
+                  <span class="badge" id="badge_E_volcAOD_yr" style="display:none;">EDITED</span>
                 </div>
               </div>
               <div class="plot-right">
@@ -363,23 +363,23 @@
                 <canvas id="miniCH4" data-height="110"></canvas>
               </div>
               <div class="mini-block">
-                <div class="mini-title">Aerosol ERF</div>
+                <div class="mini-title">Aerosol emissions</div>
                 <canvas id="miniAER" data-height="110"></canvas>
               </div>
               <div class="mini-block">
-                <div class="mini-title">Ozone ERF</div>
+                <div class="mini-title">Ozone precursors</div>
                 <canvas id="miniO3" data-height="110"></canvas>
               </div>
               <div class="mini-block">
-                <div class="mini-title">N₂O ERF</div>
+                <div class="mini-title">N₂O emissions</div>
                 <canvas id="miniN2O" data-height="110"></canvas>
               </div>
               <div class="mini-block">
-                <div class="mini-title">Other WMGHG ERF</div>
+                <div class="mini-title">Synthetic gases</div>
                 <canvas id="miniOTHER" data-height="110"></canvas>
               </div>
               <div class="mini-block">
-                <div class="mini-title">Volcanic ERF</div>
+                <div class="mini-title">Volcanic injection</div>
                 <canvas id="miniVOLC" data-height="110"></canvas>
               </div>
               <div class="mini-block">
@@ -440,6 +440,7 @@
                           <select id="mapVar" style="width:100%;">
                             <option value="tas">Temperature amplification (°C/°C)</option>
                             <option value="pr">Precip change (%/°C)</option>
+                            <option value="slr">Sea-level departure (cm/°C)</option>
                           </select>
                         </label>
                       </div>
@@ -455,6 +456,9 @@
                     </div>
                     <div class="chartBox resizable" data-height="260">
                       <canvas id="plotLocalPr"></canvas>
+                    </div>
+                    <div class="chartBox resizable" data-height="260" style="display:none;">
+                      <canvas id="plotLocalSlr"></canvas>
                     </div>
                   </div>
                 </div>

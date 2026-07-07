@@ -17,11 +17,11 @@
       ["year","Year"],
       ["E_CO2_GtC_yr","CO₂ emissions (GtC/yr)"],
       ["E_CH4_TgCH4_yr","CH₄ emissions (TgCH₄/yr)"],
-      ["ERF_aerosol_rel1850_Wm2","Aerosol ERF (W/m² rel. 1850)"],
-      ["ERF_o3_total_rel1850_Wm2","Ozone ERF (W/m² rel. 1850)"],
-      ["ERF_N2O_rel1850_Wm2","N₂O ERF (W/m² rel. 1850)"],
-      ["ERF_otherWMGHG_rel1850_Wm2","Other WMGHG ERF (W/m² rel. 1850)"],
-      ["ERF_volcanic_rel1850_Wm2","Volcanic ERF (W/m² rel. 1850)"],
+      ["E_SO2_Tg_yr","Aerosol emissions (Tg SO₂/yr)"],
+      ["E_volcAOD_yr","Volcanic aerosol injection (AOD/yr)"],
+      ["E_N2O_Tg_yr","N₂O emissions (Tg N₂O/yr)"],
+      ["E_O3prec_Tg_yr","Ozone precursor emissions (Tg/yr)"],
+      ["E_XGHG_kt_yr","Synthetic gas emissions (kt CFC-12-eq/yr)"],
       ["ERF_solar_rel1850_Wm2","Solar ERF (W/m² rel. 1850)"],
     ];
   }
@@ -325,17 +325,11 @@
     renderAll();
   });
 
-  // Edit curve buttons (delegated). In emissions mode the aerosol/volcanic
-  // buttons edit the pseudo-emission series instead of the ERF series.
+  // Edit curve buttons (delegated)
   document.addEventListener("click", (e)=>{
     const btn = e.target.closest("[data-edit]");
     if (!btn) return;
-    let varKey = btn.getAttribute("data-edit");
-    if (state.inputMode === "emissions"){
-      const mv = INPUT_VARS.find(v => v.col === varKey);
-      if (mv && mv.simpleCol) varKey = mv.simpleCol;
-    }
-    openCurveEditor(varKey);
+    openCurveEditor(btn.getAttribute("data-edit"));
   });
 
   // Run / reset

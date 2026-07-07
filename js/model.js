@@ -87,15 +87,65 @@
     });
   }
 
-  // Derive the pseudo-emission columns from the ERF columns (in place, per scenario)
-  function addSimpleEmissionCols(rows){
+  // --- Minor greenhouse gases (full model): emission-driven ------------------
+  // N2O: one-box, ~120-yr lifetime, square-root forcing (as in the IPCC simple
+  //      expressions). Emissions in Tg N2O/yr; 1 ppb of N2O ~ 7.79 Tg.
+  // O3:  tropospheric ozone is made from short-lived precursor pollution
+  //      (NOx, CO, VOCs) within days, so forcing is proportional to the
+  //      precursor emission rate (an index in ~Tg/yr, NOx-equivalent).
+  // XGHG: the basket of synthetic industrial gases (CFCs, HFCs, ...) treated
+  //      as ONE equivalent gas: linear forcing per ppt of CFC-12-equivalent,
+  //      one-box with a ~100-yr effective lifetime. 1 ppt CFC-12 ~ 21.4 kt.
+  const MINOR_GHG = {
+    n2o:  { tau: 120, C0: 270, kF: 0.12,    tgPerPpb: 7.79 },
+    o3:   { kF: 0.004 },                                        // W/m² per Tg/yr
+    xghg: { tau: 100, kF: 0.00032, ktPerPpt: 21.4 }             // per ppt CFC-12-eq
+  };
+
+  // Annual ERF series -> annual emission series (exact annual-step inversions,
+  // same approach as volcErfToEmis). Used once per scenario at load time.
+  function n2oErfToEmis(erfVals){
+    const {tau, C0, kF, tgPerPpb} = MINOR_GHG.n2o;
+    const e = Math.exp(-1/tau);
+    const Enat = tgPerPpb * C0 / tau; // natural source holding the baseline steady
+    let Cprev = C0;
+    return erfVals.map(f => {
+      const C = Math.pow(Math.sqrt(C0) + Math.max(-Math.sqrt(C0), (f || 0)/kF), 2);
+      const E = tgPerPpb * (C - Cprev*e) / (tau*(1-e)) - Enat;
+      Cprev = C;
+      return Math.max(0, E);
+    });
+  }
+
+  function xghgErfToEmis(erfVals){
+    const {tau, kF, ktPerPpt} = MINOR_GHG.xghg;
+    const e = Math.exp(-1/tau);
+    let Cprev = 0;
+    return erfVals.map(f => {
+      const C = Math.max(0, (f || 0)/kF);
+      const E = ktPerPpt * (C - Cprev*e) / (tau*(1-e));
+      Cprev = C;
+      return Math.max(0, E);
+    });
+  }
+
+  // Derive ALL pseudo-emission columns from the ERF columns (in place, per
+  // scenario): aerosol + volcanic (used in both modes) and the minor GHGs
+  // (used by the full model).
+  function addDerivedEmissionCols(rows){
     const {kAer} = SIMPLE_INPUTS;
     const evolc = volcErfToEmis(rows.map(r => r.ERF_volcanic_rel1850_Wm2 || 0));
+    const en2o = n2oErfToEmis(rows.map(r => r.ERF_N2O_rel1850_Wm2 || 0));
+    const exghg = xghgErfToEmis(rows.map(r => r.ERF_otherWMGHG_rel1850_Wm2 || 0));
     rows.forEach((r, i) => {
       r.E_SO2_Tg_yr = (r.ERF_aerosol_rel1850_Wm2 || 0)/kAer;
       r.E_volcAOD_yr = evolc[i];
+      r.E_N2O_Tg_yr = en2o[i];
+      r.E_O3prec_Tg_yr = Math.max(0, (r.ERF_o3_total_rel1850_Wm2 || 0)/MINOR_GHG.o3.kF);
+      r.E_XGHG_kt_yr = exghg[i];
     });
   }
+  const addSimpleEmissionCols = addDerivedEmissionCols; // backwards-compatible name
 
   function carbonateFromCu(Cu, cfg){
     const term = 1 - (Cu / cfg.Alk);
@@ -111,29 +161,32 @@
     const years = scenarioRows.map(r => r.year);
     const y0 = years[0], yN = years[years.length-1];
 
+    // The model is emission-driven throughout. In the simple ("emissions")
+    // mode the minor GHGs (N2O, ozone precursors, synthetic gases) are
+    // excluded; in the full mode they run as small emission-driven sub-models.
+    const simple = params.inputMode === "emissions";
+
     const s = {
       E_CO2: buildSeries(scenarioRows, "E_CO2_GtC_yr"),
       E_CH4: buildSeries(scenarioRows, "E_CH4_TgCH4_yr"),
-      ERF_N2O: buildSeries(scenarioRows, "ERF_N2O_rel1850_Wm2"),
-      ERF_other: buildSeries(scenarioRows, "ERF_otherWMGHG_rel1850_Wm2"),
-      ERF_aer: buildSeries(scenarioRows, "ERF_aerosol_rel1850_Wm2"),
-      ERF_o3: buildSeries(scenarioRows, "ERF_o3_total_rel1850_Wm2"),
+      E_SO2: buildSeries(scenarioRows, "E_SO2_Tg_yr"),
       ERF_solar: buildSeries(scenarioRows, "ERF_solar_rel1850_Wm2"),
-      ERF_volc: buildSeries(scenarioRows, "ERF_volcanic_rel1850_Wm2"),
     };
-
-    // Simple (emissions) input mode: aerosol/volcanic driven by emissions,
-    // minor forcings excluded.
-    const simple = params.inputMode === "emissions";
-    let volcA = 0; // stratospheric aerosol burden (AOD units)
-    let volcEmisByYear = null;
-    if (simple){
-      s.E_SO2 = buildSeries(scenarioRows, "E_SO2_Tg_yr");
-      // Volcanic injections are impulsive: treat them as annual blocks rather than
-      // spline-interpolating, so an eruption cannot leak into the preceding year.
-      volcEmisByYear = new Map(scenarioRows.map(r => [r.year, Math.max(0, r.E_volcAOD_yr || 0)]));
-      volcA = (scenarioRows[0].ERF_volcanic_rel1850_Wm2 || 0) / SIMPLE_INPUTS.vf;
+    if (!simple){
+      s.E_N2O = buildSeries(scenarioRows, "E_N2O_Tg_yr");
+      s.E_O3 = buildSeries(scenarioRows, "E_O3prec_Tg_yr");
+      s.E_XGHG = buildSeries(scenarioRows, "E_XGHG_kt_yr");
     }
+
+    // Volcanic injections are impulsive: treat them as annual blocks rather than
+    // spline-interpolating, so an eruption cannot leak into the preceding year.
+    const volcEmisByYear = new Map(scenarioRows.map(r => [r.year, Math.max(0, r.E_volcAOD_yr || 0)]));
+    let volcA = (scenarioRows[0].ERF_volcanic_rel1850_Wm2 || 0) / SIMPLE_INPUTS.vf;
+
+    // Minor-GHG box states (full model)
+    let Cn2o = MINOR_GHG.n2o.C0;   // ppb
+    let Cxghg = 0;                 // ppt CFC-12-eq
+    const n2oEnat = MINOR_GHG.n2o.tgPerPpb * MINOR_GHG.n2o.C0 / MINOR_GHG.n2o.tau;
 
     // EBM parameters
     const S = params.S;
@@ -231,20 +284,22 @@
         const E_C = s.E_CO2.interp(t);
         const E_CH4_anth = s.E_CH4.interp(t);
 
-        let F_aer, F_o3, F_n2o, F_other, F_volc;
+        // aerosol forcing proportional to emission rate; volcanic burden integrated
+        const F_aer = SIMPLE_INPUTS.kAer * s.E_SO2.interp(t);
+        volcA += ((volcEmisByYear.get(y) ?? 0) - volcA/SIMPLE_INPUTS.vtau) * dt;
+        const F_volc = SIMPLE_INPUTS.vf * volcA;
         const F_solar = s.ERF_solar.interp(t);
+
+        let F_o3, F_n2o, F_other;
         if (simple){
-          // aerosol forcing proportional to emission rate; volcanic burden integrated
-          F_aer = SIMPLE_INPUTS.kAer * s.E_SO2.interp(t);
-          volcA += ((volcEmisByYear.get(y) ?? 0) - volcA/SIMPLE_INPUTS.vtau) * dt;
-          F_volc = SIMPLE_INPUTS.vf * volcA;
           F_o3 = 0; F_n2o = 0; F_other = 0;
         } else {
-          F_aer = s.ERF_aer.interp(t);
-          F_o3  = s.ERF_o3.interp(t);
-          F_n2o = s.ERF_N2O.interp(t);
-          F_other = s.ERF_other.interp(t);
-          F_volc  = s.ERF_volc.interp(t);
+          const gN = MINOR_GHG.n2o, gX = MINOR_GHG.xghg;
+          Cn2o += ((n2oEnat + Math.max(0, s.E_N2O.interp(t)))/gN.tgPerPpb - Cn2o/gN.tau) * dt;
+          F_n2o = gN.kF * (Math.sqrt(Math.max(Cn2o, 1e-6)) - Math.sqrt(gN.C0));
+          Cxghg += (Math.max(0, s.E_XGHG.interp(t))/gX.ktPerPpt - Cxghg/gX.tau) * dt;
+          F_other = gX.kF * Cxghg;
+          F_o3 = MINOR_GHG.o3.kF * Math.max(0, s.E_O3.interp(t));
         }
 
         // --- Carbon cycle update (CO2) ---
@@ -318,20 +373,18 @@
       }
 
       // Annual sample at year midpoint (recorded forcings must match what the
-      // model actually applied, which differs between input modes)
+      // model actually applied)
       const tm = y + 0.5;
       const F_solar_m = s.ERF_solar.interp(tm);
-      let F_aer_m, F_o3_m, F_n2o_m, F_other_m, F_volc_m;
+      const F_aer_m = SIMPLE_INPUTS.kAer * s.E_SO2.interp(tm);
+      const F_volc_m = fVolcSum/12; // annual mean of the integrated volcanic forcing
+      let F_o3_m, F_n2o_m, F_other_m;
       if (simple){
-        F_aer_m = SIMPLE_INPUTS.kAer * s.E_SO2.interp(tm);
-        F_volc_m = fVolcSum/12; // annual mean of the integrated volcanic forcing
         F_o3_m = 0; F_n2o_m = 0; F_other_m = 0;
       } else {
-        F_aer_m = s.ERF_aer.interp(tm);
-        F_o3_m  = s.ERF_o3.interp(tm);
-        F_n2o_m = s.ERF_N2O.interp(tm);
-        F_other_m = s.ERF_other.interp(tm);
-        F_volc_m  = s.ERF_volc.interp(tm);
+        F_n2o_m = MINOR_GHG.n2o.kF * (Math.sqrt(Math.max(Cn2o, 1e-6)) - Math.sqrt(MINOR_GHG.n2o.C0));
+        F_other_m = MINOR_GHG.xghg.kF * Cxghg;
+        F_o3_m = MINOR_GHG.o3.kF * Math.max(0, s.E_O3.interp(tm));
       }
 
       const carbY = carbonateFromCu(Cu, cfg);

@@ -95,6 +95,16 @@ def nan_fill_nearest(a, axis):
     return np.apply_along_axis(fill1d, axis, np.asarray(a, dtype=np.float64))
 
 
+def regrid_to_1deg_nofill(da):
+    """Like regrid_to_1deg but preserves NaN (e.g. land mask in ocean fields)."""
+    da = to_minus180_180(da).sortby("lat")
+    left = da.isel(lon=-1).assign_coords(lon=da.lon[-1] - 360)
+    right = da.isel(lon=0).assign_coords(lon=da.lon[0] + 360)
+    da = xr.concat([left, da, right], dim="lon")
+    return da.interp(lat=TARGET_LAT, lon=TARGET_LON, method="linear",
+                     kwargs={"fill_value": None})
+
+
 def regrid_to_1deg(da):
     """Bilinear regrid to the common 1-degree grid with cyclic longitudes."""
     da = to_minus180_180(da).sortby("lat")
@@ -125,12 +135,15 @@ def model_patterns(tas_base, tas_fut, pr_base, pr_fut):
     return tas_amp, pr_pct, dgmst
 
 
-def ensemble_median(fields):
-    """Median across models, then nearest-neighbour fill of any NaNs."""
+def ensemble_median(fields, fill=True):
+    """Median across models; optionally nearest-neighbour fill NaNs.
+
+    fill=False keeps NaN (used for ocean-only fields where land must stay NaN).
+    """
     stack = np.stack([np.asarray(f, dtype=np.float64) for f in fields])
     with np.errstate(all="ignore"):
         med = np.nanmedian(stack, axis=0)
-    if np.isnan(med).any():
+    if fill and np.isnan(med).any():
         med = nan_fill_nearest(med, axis=1)  # along longitudes first
         med = nan_fill_nearest(med, axis=0)  # then latitudes
     return med.astype(np.float32)
@@ -140,16 +153,42 @@ def robust_limits(arr, lo=2, hi=98):
     return float(np.percentile(arr, lo)), float(np.percentile(arr, hi))
 
 
-def write_pattern_js(path, tas_amp, pr_pct, source_desc):
-    """Write the JS file in exactly the format js/patterns-map.js loads."""
+def write_pattern_js(path, tas_amp, pr_pct, slr, source_desc):
+    """Write the JS file in exactly the format js/patterns-map.js loads.
+
+    slr may be None (older 2-array layout) or a (nlat, nlon) float32 array in
+    cm per K with NaN over land.
+    """
     nlat, nlon = len(TARGET_LAT), len(TARGET_LON)
-    assert tas_amp.shape == (nlat, nlon) and pr_pct.shape == (nlat, nlon)
+    arrays = [("tas_amp", tas_amp), ("pr_pct_perC", pr_pct)]
+    if slr is not None:
+        arrays.append(("slr_cm_perC", slr.astype(np.float32)))
+    for name, arr in arrays:
+        assert arr.shape == (nlat, nlon), (name, arr.shape)
+
     # lat-major, lat ascending from -89.5 (matches meta below)
-    payload = tas_amp.astype("<f4").tobytes() + pr_pct.astype("<f4").tobytes()
+    payload = b"".join(arr.astype("<f4").tobytes() for _, arr in arrays)
     b64 = base64.b64encode(payload).decode("ascii")
 
     t_lo, t_hi = robust_limits(tas_amp)
     p_lo, p_hi = robust_limits(pr_pct)
+    var_meta = {
+        "tas_amp": {
+            "description": "Local temperature amplification factor (°C local per °C global)",
+            "units": "°C/°C", "vmin": t_lo, "vmax": t_hi,
+            "note": "vmin/vmax are 2nd/98th percentiles for display scaling"},
+        "pr_pct_perC": {
+            "description": "Local precipitation change (% of 1850-1900 local mean per °C global warming)",
+            "units": "%/°C", "vmin": p_lo, "vmax": p_hi,
+            "note": f"clipped to ±{PR_CLIP:g} %/°C; dry cells (<0.1 mm/day) filled by nearest neighbour"},
+    }
+    if slr is not None:
+        s_lo, s_hi = robust_limits(slr[np.isfinite(slr)])
+        var_meta["slr_cm_perC"] = {
+            "description": "Regional sea-level departure from the global-average rise (cm per °C global warming)",
+            "units": "cm/°C", "vmin": s_lo, "vmax": s_hi,
+            "note": "dynamic sea-surface-height (zos) change; NaN over land; excludes ice-sheet gravitational fingerprints"}
+
     meta = {
         "name": "CMIP6 pattern scaling (epoch difference, ensemble median)",
         "source": source_desc,
@@ -157,32 +196,25 @@ def write_pattern_js(path, tas_amp, pr_pct, source_desc):
         "grid": {"nlat": nlat, "nlon": nlon, "lat0": float(TARGET_LAT[0]),
                  "lon0": float(TARGET_LON[0]), "dlat": 1.0, "dlon": 1.0,
                  "lat_is_center": True, "lon_is_center": True},
-        "vars": {
-            "tas_amp": {
-                "description": "Local temperature amplification factor (°C local per °C global)",
-                "units": "°C/°C", "vmin": t_lo, "vmax": t_hi,
-                "note": "vmin/vmax are 2nd/98th percentiles for display scaling"},
-            "pr_pct_perC": {
-                "description": "Local precipitation change (% of 1850-1900 local mean per °C global warming)",
-                "units": "%/°C", "vmin": p_lo, "vmax": p_hi,
-                "note": f"clipped to ±{PR_CLIP:g} %/°C; dry cells (<0.1 mm/day) filled by nearest neighbour"},
-        },
-        "layout": {"order": "lat-major", "arrays": ["tas_amp", "pr_pct_perC"]},
+        "vars": var_meta,
+        "layout": {"order": "lat-major", "arrays": [name for name, _ in arrays]},
     }
 
     with open(path, "w", encoding="utf-8") as f:
         f.write("// CMIP6-derived pattern scaling coefficients on a 1°x1° grid.\n")
         f.write("// Generated by tools/make_patterns_cmip6.py — see that file for the method.\n")
-        f.write("// Same format as patterns_synthetic_1deg.js: two Float32 arrays\n")
-        f.write("// [tas_amp, pr_pct_perC], lat-major, concatenated and base64-encoded.\n\n")
+        f.write("// Float32 arrays (see meta.layout.arrays), lat-major, concatenated, base64.\n\n")
         f.write("window.PATTERN_1DEG = {\n")
         f.write("  meta: " + json.dumps(meta) + ",\n")
         f.write('  format: "f32-b64-concat",\n')
         f.write('  b64: "' + b64 + '"\n')
         f.write("};\n")
-    log(f"Wrote {path} ({(len(b64)/1024):.0f} kB base64, {nlat}x{nlon} grid)")
+    log(f"Wrote {path} ({(len(b64)/1024):.0f} kB base64, {nlat}x{nlon} grid, arrays: {[n for n,_ in arrays]})")
     log(f"  tas_amp: median {np.median(tas_amp):.2f}, display range {t_lo:.2f}..{t_hi:.2f} °C/°C")
     log(f"  pr_pct : median {np.median(pr_pct):.2f}, display range {p_lo:.2f}..{p_hi:.2f} %/°C")
+    if slr is not None:
+        ok = slr[np.isfinite(slr)]
+        log(f"  slr    : median {np.median(ok):.1f}, display range {np.percentile(ok,2):.1f}..{np.percentile(ok,98):.1f} cm/°C ({100*ok.size/slr.size:.0f}% ocean)")
 
 
 # ---------------------------------------------------------------------------
@@ -194,10 +226,9 @@ def load_catalog():
     log(f"Loading Pangeo CMIP6 catalogue …")
     cat = pd.read_csv(CATALOG_URL)
     keep = (
-        cat.table_id.eq("Amon")
-        & cat.variable_id.isin(["tas", "pr"])
-        & cat.member_id.eq("r1i1p1f1")
-    )
+        (cat.table_id.eq("Amon") & cat.variable_id.isin(["tas", "pr"]))
+        | (cat.table_id.eq("Omon") & cat.variable_id.eq("zos"))
+    ) & cat.member_id.eq("r1i1p1f1")
     return cat[keep]
 
 
@@ -213,6 +244,10 @@ def epoch_mean_from_catalog(cat, model, experiment, variable, period):
                & (cat.variable_id == variable)]
     if rows.empty:
         raise KeyError(f"{model}/{experiment}/{variable} not in catalogue")
+    # Ocean variables (zos) live on curvilinear native grids in many models;
+    # prefer stores regridded to a regular grid (grid_label "gr", "gr1", ...).
+    if "grid_label" in rows.columns:
+        rows = rows.sort_values("grid_label", key=lambda g: ~g.str.startswith("gr"))
     fs = gcsfs.GCSFileSystem(token="anon")
     last_err = None
     for zstore in rows.zstore:
@@ -221,6 +256,8 @@ def epoch_mean_from_catalog(cat, model, experiment, variable, period):
             da = ds[variable]
             if "latitude" in da.dims:
                 da = da.rename({"latitude": "lat", "longitude": "lon"})
+            if "lat" not in da.dims or getattr(da["lat"], "ndim", 1) != 1:
+                raise ValueError("curvilinear (2-D) grid — no regular-grid store")
             slab = da.sel(time=slice(period[0], period[1]))
             nyears = len(np.unique([t.year for t in slab.time.values]))
             if nyears < 20:
@@ -237,7 +274,25 @@ def process_model(cat, model, scenario):
     tas_fut = epoch_mean_from_catalog(cat, model, scenario, "tas", FUTURE_PERIOD)
     pr_fut = epoch_mean_from_catalog(cat, model, scenario, "pr", FUTURE_PERIOD)
     tas_amp, pr_pct, dgmst = model_patterns(tas_base, tas_fut, pr_base, pr_fut)
-    return regrid_to_1deg(tas_amp), regrid_to_1deg(pr_pct), dgmst
+
+    # Regional sea level: dynamic sea-surface-height (zos) departure per K of
+    # global warming, in cm/K. zos's global mean is arbitrary, so remove the
+    # ocean-mean change: what remains is the regional departure from the
+    # global-average rise. Land stays NaN. Optional — some models lack a
+    # regular-grid zos store.
+    slr = None
+    try:
+        zos_base = epoch_mean_from_catalog(cat, model, "historical", "zos", BASE_PERIOD)
+        zos_fut = epoch_mean_from_catalog(cat, model, scenario, "zos", FUTURE_PERIOD)
+        dz = regrid_to_1deg_nofill(zos_fut - zos_base)
+        w = np.cos(np.deg2rad(TARGET_LAT))[:, None] * np.ones((1, len(TARGET_LON)))
+        v = dz.values
+        ocean = np.isfinite(v)
+        dz_dep = v - np.nansum(np.where(ocean, v*w, 0)) / np.sum(np.where(ocean, w, 0))
+        slr = 100.0 * dz_dep / dgmst  # cm per K, NaN over land
+    except Exception as e:
+        log(f"  {model}: no usable zos ({e}) — sea-level pattern skipped for this model")
+    return regrid_to_1deg(tas_amp), regrid_to_1deg(pr_pct), slr, dgmst
 
 
 # ---------------------------------------------------------------------------
@@ -273,6 +328,11 @@ def selftest(out_path):
     tas_amp = ensemble_median(fields_t)
     pr_pct = ensemble_median(fields_p)
 
+    # fake sea-level departure with a "land" hole; must survive median + encode
+    slr = np.where((np.arange(180)[:, None] > 80) & (np.arange(180)[:, None] < 100)
+                   & (np.arange(360)[None, :] < 60),
+                   np.nan, 10*np.sin(np.deg2rad(TARGET_LAT))[:, None]*np.ones((1, 360))).astype(np.float32)
+
     # physical checks:
     # (1) area-weighted global mean of tas_amp must be 1 by construction
     w = np.cos(np.deg2rad(TARGET_LAT))[:, None] * np.ones((1, len(TARGET_LON)))
@@ -283,16 +343,19 @@ def selftest(out_path):
     assert 1.9 < pole/eq < 2.9, f"pole/equator ratio {pole/eq}"
     assert np.isfinite(tas_amp).all() and np.isfinite(pr_pct).all()
 
-    write_pattern_js(out_path, tas_amp, pr_pct,
+    write_pattern_js(out_path, tas_amp, pr_pct, slr,
                      "SELFTEST: synthetic 2-model ensemble — do not use for teaching")
-    # round-trip the encoding
+    # round-trip the encoding (all three arrays incl. NaN)
     txt = open(out_path, encoding="utf-8").read()
     b64 = txt.split('b64: "')[1].split('"')[0]
     buf = base64.b64decode(b64)
     n = 180*360
     t2 = np.frombuffer(buf, dtype="<f4", count=n).reshape(180, 360)
-    assert np.allclose(t2, tas_amp), "b64 round-trip mismatch"
-    log("selftest OK: pipeline, grid, encoding and round-trip all valid")
+    z2 = np.frombuffer(buf, dtype="<f4", count=n, offset=2*n*4).reshape(180, 360)
+    assert np.allclose(t2, tas_amp), "b64 round-trip mismatch (tas)"
+    assert np.array_equal(np.isnan(z2), np.isnan(slr)), "NaN mask lost in round-trip"
+    assert np.allclose(z2[np.isfinite(z2)], slr[np.isfinite(slr)]), "b64 round-trip mismatch (slr)"
+    log("selftest OK: pipeline, grid, encoding, NaN handling and round-trip all valid")
 
 
 # ---------------------------------------------------------------------------
@@ -312,14 +375,16 @@ def main():
 
     cat = load_catalog()
     wanted = args.models or DEFAULT_MODELS
-    fields_t, fields_p, used = [], [], []
+    fields_t, fields_p, fields_z, used, used_z = [], [], [], [], []
     for model in wanted:
         if len(used) >= args.max_models:
             break
         try:
             log(f"processing {model} …")
-            ta, pp, dgmst = process_model(cat, model, args.scenario)
+            ta, pp, slr_m, dgmst = process_model(cat, model, args.scenario)
             fields_t.append(ta); fields_p.append(pp)
+            if slr_m is not None:
+                fields_z.append(slr_m); used_z.append(model)
             used.append(model)
             log(f"  {model}: dGMST({args.scenario} {FUTURE_PERIOD[0]}-{FUTURE_PERIOD[1]} vs {BASE_PERIOD[0]}-{BASE_PERIOD[1]}) = {dgmst:.2f} K")
         except Exception as e:
@@ -329,11 +394,15 @@ def main():
 
     tas_amp = ensemble_median(fields_t)
     pr_pct = ensemble_median(fields_p)
+    slr = ensemble_median(fields_z, fill=False) if len(used_z) >= 3 else None
+    if slr is None:
+        log("NOTE: fewer than 3 models provided usable zos — sea-level pattern omitted.")
     src = (f"CMIP6 ensemble median of {len(used)} models ({', '.join(used)}); "
            f"epoch difference {args.scenario} {FUTURE_PERIOD[0]}-{FUTURE_PERIOD[1]} minus "
            f"historical {BASE_PERIOD[0]}-{BASE_PERIOD[1]}, per K of global-mean warming; "
-           f"r1i1p1f1; Pangeo Google Cloud archive")
-    write_pattern_js(args.out, tas_amp, pr_pct, src)
+           f"r1i1p1f1; Pangeo Google Cloud archive"
+           + (f". Sea level (zos departure): median of {len(used_z)} models ({', '.join(used_z)})" if slr is not None else ""))
+    write_pattern_js(args.out, tas_amp, pr_pct, slr, src)
     log("Done. Point the pattern <script> tag in index.html at this file.")
 
 

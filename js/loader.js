@@ -32,6 +32,9 @@
     E_CH4_TgCH4_yr:             ["ech4tgch4yr", "ch4emissions", "methane", "ch4"],
     E_SO2_Tg_yr:                ["eso2tgyr", "aerosolemissions", "so2emissions", "so2"],
     E_volcAOD_yr:               ["evolcaodyr", "volcanicaerosolinjection", "volcanicemissions", "volcanicinjection"],
+    E_N2O_Tg_yr:                ["en2otgyr", "n2oemissions"],
+    E_O3prec_Tg_yr:             ["eo3prectgyr", "ozoneprecursoremissions", "ozoneprecursors"],
+    E_XGHG_kt_yr:               ["exghgktyr", "syntheticgasemissions", "syntheticgases", "cfcemissions"],
     ERF_aerosol_rel1850_Wm2:    ["erfaerosolrel1850wm2", "aerosolerf", "aerosol", "aer"],
     ERF_o3_total_rel1850_Wm2:   ["erfo3totalrel1850wm2", "ozoneerf", "ozone", "o3"],
     ERF_N2O_rel1850_Wm2:        ["erfn2orel1850wm2", "n2oerf", "n2o"],
@@ -222,6 +225,18 @@
     } else if (has("ERF_volcanic_rel1850_Wm2")){
       const ev = volcErfToEmis(rows.map(r => r.ERF_volcanic_rel1850_Wm2));
       rows.forEach((r, i) => { r.E_volcAOD_yr = ev[i]; });
+    }
+    // Minor GHGs: files may specify either emissions or ERF; derive the other.
+    if (has("ERF_N2O_rel1850_Wm2") && !has("E_N2O_Tg_yr")){
+      const ev = n2oErfToEmis(rows.map(r => r.ERF_N2O_rel1850_Wm2));
+      rows.forEach((r, i) => { r.E_N2O_Tg_yr = ev[i]; });
+    }
+    if (has("ERF_o3_total_rel1850_Wm2") && !has("E_O3prec_Tg_yr")){
+      rows.forEach(r => { r.E_O3prec_Tg_yr = Math.max(0, r.ERF_o3_total_rel1850_Wm2 / MINOR_GHG.o3.kF); });
+    }
+    if (has("ERF_otherWMGHG_rel1850_Wm2") && !has("E_XGHG_kt_yr")){
+      const ev = xghgErfToEmis(rows.map(r => r.ERF_otherWMGHG_rel1850_Wm2));
+      rows.forEach((r, i) => { r.E_XGHG_kt_yr = ev[i]; });
     }
 
     const varTitle = c => {

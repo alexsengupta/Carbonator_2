@@ -34,14 +34,16 @@
     const n = nlat*nlon;
     try{
       const buf = b64ToArrayBuffer(src.b64);
-      const needFloats = 2*n;
-      if (buf.byteLength < needFloats*4) throw new Error("Pattern buffer too small");
-      const tasAmp = new Float32Array(buf, 0, n);
-      const prPct = new Float32Array(buf, n*4, n);
+      const names = (src.meta.layout && src.meta.layout.arrays) || ["tas_amp", "pr_pct_perC"];
+      if (buf.byteLength < names.length*n*4) throw new Error("Pattern buffer too small");
+      const fields = {};
+      names.forEach((name, i) => { fields[name] = new Float32Array(buf, i*n*4, n); });
       return {
         meta: src.meta,
         grid: {nlat, nlon, lat0:g.lat0, lon0:g.lon0, dlat:g.dlat, dlon:g.dlon},
-        tasAmp, prPct
+        tasAmp: fields.tas_amp,
+        prPct: fields.pr_pct_perC,
+        slr: fields.slr_cm_perC || null   // cm/°C departure; NaN over land
       };
     }catch(e){
       console.warn("Failed to load PATTERN_1DEG:", e);
@@ -61,9 +63,13 @@
   }
 
   function getPatternAt(lat, lon){
-    if (!PATTERN) return {tasAmp: 1.0, prPctPerC: 0.0};
+    if (!PATTERN) return {tasAmp: 1.0, prPctPerC: 0.0, slrCmPerC: null};
     const idx = patternIndex(lat, lon);
-    return {tasAmp: PATTERN.tasAmp[idx], prPctPerC: PATTERN.prPct[idx]};
+    return {
+      tasAmp: PATTERN.tasAmp[idx],
+      prPctPerC: PATTERN.prPct[idx],
+      slrCmPerC: (PATTERN.slr && Number.isFinite(PATTERN.slr[idx])) ? PATTERN.slr[idx] : null
+    };
   }
 
   function lerp(a,b,t){ return a + (b-a)*t; }
@@ -91,22 +97,24 @@
     }
   }
 
-  const _mapCache = {tas:null, pr:null};
+  const _mapCache = {tas:null, pr:null, slr:null};
 
   function buildMapImage(varKey){
     if (!PATTERN) return null;
     const g = PATTERN.grid;
     const w = g.nlon, h = g.nlat;
     const img = new ImageData(w, h);
-    const data = (varKey === "pr") ? PATTERN.prPct : PATTERN.tasAmp;
+    const data = (varKey === "pr") ? PATTERN.prPct
+               : (varKey === "slr") ? PATTERN.slr
+               : PATTERN.tasAmp;
+    if (!data) return null;
 
     let vmin, vmax, diverge=false;
-    if (varKey === "pr"){
+    if (varKey === "pr" || varKey === "slr"){
       diverge = true;
-      // symmetric-ish range around 0 for nicer display
-      const rawMin = PATTERN.meta.vars.pr_pct_perC.vmin;
-      const rawMax = PATTERN.meta.vars.pr_pct_perC.vmax;
-      const m = Math.max(Math.abs(rawMin), Math.abs(rawMax));
+      // symmetric range around 0 for nicer display
+      const vm = PATTERN.meta.vars[varKey === "pr" ? "pr_pct_perC" : "slr_cm_perC"];
+      const m = Math.max(Math.abs(vm.vmin), Math.abs(vm.vmax));
       vmin = -m; vmax = m;
     }else{
       vmin = PATTERN.meta.vars.tas_amp.vmin;
@@ -119,7 +127,9 @@
         const idx = ilat*w + ix;
         const v = data[idx];
         let rgba;
-        if (diverge){
+        if (!Number.isFinite(v)){
+          rgba = [206, 210, 214, 255]; // land / no data
+        }else if (diverge){
           const t = clamp((v - 0)/(vmax-0), -1, 1);
           rgba = rampDiv(t);
         }else{
@@ -185,6 +195,10 @@
     if (legend){
       if (varKey === "pr"){
         legend.textContent = `Precip pattern: ${pat.prPctPerC.toFixed(2)} %/°C  (map range ${cache.vmin.toFixed(1)} to ${cache.vmax.toFixed(1)})`;
+      }else if (varKey === "slr"){
+        legend.textContent = (pat.slrCmPerC === null)
+          ? `Sea-level departure: — (land; click an ocean point)  (map range ${cache.vmin.toFixed(0)} to ${cache.vmax.toFixed(0)} cm/°C)`
+          : `Sea-level departure: ${pat.slrCmPerC.toFixed(1)} cm/°C  (map range ${cache.vmin.toFixed(0)} to ${cache.vmax.toFixed(0)})`;
       }else{
         legend.textContent = `Temp amplification: ${pat.tasAmp.toFixed(2)} °C/°C  (map range ${cache.vmin.toFixed(2)} to ${cache.vmax.toFixed(2)})`;
       }
@@ -209,6 +223,10 @@
             0.8 means it lags behind (like the oceans around Australia).</li>
         <li>The <b>rainfall map</b> shows the percentage change in precipitation for every degree of global warming —
             blue regions get wetter, brown regions get drier.</li>
+        <li>The <b>sea-level map</b> shows how much the local sea-level rise differs from the global average
+            (in cm per degree of warming). Winds and ocean currents pile water up more in some places than others,
+            so the sea does not rise evenly — some coasts get extra rise on top of the global amount. (It does not
+            include the effects of <i>where</i> melting ice comes from, which also shifts sea level around.)</li>
       </ul>
       <p><b>Where does the map come from?</b> We compared the end of this century (2071–2100, high-emission scenario)
       with the pre-industrial climate (1850–1900) in twelve of the world's full climate models, divided each model's
@@ -224,10 +242,14 @@
   function syncLocalInputs(){
     if (el("locLat")) el("locLat").value = (state.local.lat ?? 0).toFixed(1);
     if (el("locLon")) el("locLon").value = (state.local.lon ?? 0).toFixed(1);
-    if (el("mapVar")) el("mapVar").value = state.local.mapVar || "tas";
+    if (el("mapVar")){
+      const slrOpt = el("mapVar").querySelector('option[value="slr"]');
+      if (slrOpt) slrOpt.disabled = !(PATTERN && PATTERN.slr);
+      el("mapVar").value = state.local.mapVar || "tas";
+    }
   }
 
-  function renderLocalSeries(years, globalTemp){
+  function renderLocalSeries(years, globalTemp, globalSL){
     if (!PATTERN) return;
     if (!state.outputPanels.local) return;
 
@@ -246,25 +268,36 @@
     plotLines(el("plotLocalPr"), [
       {label:`Local pr change (lat ${lat.toFixed(1)}, lon ${lon.toFixed(1)})`, x:years, y:locPr, color:"#2ca02c", width:2.4},
     ], {yLabel:"Precipitation change (% relative)", yDigits:1});
+
+    // Local sea level: global-mean rise from the model + regional departure
+    // scaled by warming. Only shown for ocean locations with slr data.
+    const slrBox = el("plotLocalSlr") ? el("plotLocalSlr").closest(".chartBox") : null;
+    if (slrBox){
+      const show = !!(globalSL && pat.slrCmPerC !== null);
+      slrBox.style.display = show ? "" : "none";
+      if (show){
+        const locSL = globalSL.map((v, i) => v + (pat.slrCmPerC/100) * globalTemp[i]);
+        plotLines(el("plotLocalSlr"), [
+          {label:`Local sea level (lat ${lat.toFixed(1)}, lon ${lon.toFixed(1)})`, x:years, y:locSL, color:"#8e44ad", width:2.4},
+          {label:`Global mean (model)`, x:years, y:globalSL, color:"rgba(0,0,0,0.25)", width:1.4},
+        ], {yLabel:"Sea level rise (m rel. 1850)", yDigits:2});
+      }
+    }
   }
 
 
 
-  // Input variables. In the default simple "emissions" input mode, aerosol and
-  // volcanic inputs switch to their pseudo-emission columns (simpleCol) and the
-  // minor forcings (simpleHidden) are excluded from the UI and the model.
+  // Input variables. All inputs are emissions (plus solar forcing). The minor
+  // GHGs (simpleHidden) appear only in the full model; the simple model
+  // excludes them entirely.
   const INPUT_VARS = [
     {toggle:"CO2", col:"E_CO2_GtC_yr", canvas:"plotInCO2", mini:"miniCO2", yDigits:1, title:"CO₂", units:"GtC/yr"},
     {toggle:"CH4", col:"E_CH4_TgCH4_yr", canvas:"plotInCH4", mini:"miniCH4", yDigits:0, title:"CH₄", units:"Tg/yr"},
-    {toggle:"AER", col:"ERF_aerosol_rel1850_Wm2", canvas:"plotInAER", mini:"miniAER", yDigits:2, title:"Aerosol", units:"W/m²",
-      simpleCol:"E_SO2_Tg_yr", simpleTitle:"Aerosol emissions", simpleUnits:"Tg SO₂/yr", simpleDigits:0,
-      simpleSub:"Human aerosol (SO₂) emissions. Forcing is proportional to the emission rate (aerosols wash out within days)."},
-    {toggle:"O3", col:"ERF_o3_total_rel1850_Wm2", canvas:"plotInO3", mini:"miniO3", yDigits:2, title:"Ozone", units:"W/m²", simpleHidden:true},
-    {toggle:"N2O", col:"ERF_N2O_rel1850_Wm2", canvas:"plotInN2O", mini:"miniN2O", yDigits:2, title:"N₂O", units:"W/m²", simpleHidden:true},
-    {toggle:"OTHER", col:"ERF_otherWMGHG_rel1850_Wm2", canvas:"plotInOTHER", mini:"miniOTHER", yDigits:2, title:"Other WMGHG", units:"W/m²", simpleHidden:true},
-    {toggle:"VOLC", col:"ERF_volcanic_rel1850_Wm2", canvas:"plotInVOLC", mini:"miniVOLC", yDigits:2, title:"Volcanic", units:"W/m²",
-      simpleCol:"E_volcAOD_yr", simpleTitle:"Volcanic aerosol injection", simpleUnits:"AOD/yr", simpleDigits:3,
-      simpleSub:"Volcanic aerosol injected into the stratosphere (optical depth per year); it decays with a ~1.2-year lifetime."},
+    {toggle:"AER", col:"E_SO2_Tg_yr", canvas:"plotInAER", mini:"miniAER", yDigits:0, title:"Aerosol emissions", units:"Tg SO₂/yr"},
+    {toggle:"O3", col:"E_O3prec_Tg_yr", canvas:"plotInO3", mini:"miniO3", yDigits:0, title:"Ozone precursors", units:"Tg/yr", simpleHidden:true},
+    {toggle:"N2O", col:"E_N2O_Tg_yr", canvas:"plotInN2O", mini:"miniN2O", yDigits:1, title:"N₂O emissions", units:"Tg N₂O/yr", simpleHidden:true},
+    {toggle:"OTHER", col:"E_XGHG_kt_yr", canvas:"plotInOTHER", mini:"miniOTHER", yDigits:0, title:"Synthetic gases", units:"kt CFC-12-eq/yr", simpleHidden:true},
+    {toggle:"VOLC", col:"E_volcAOD_yr", canvas:"plotInVOLC", mini:"miniVOLC", yDigits:3, title:"Volcanic injection", units:"AOD/yr"},
     {toggle:"SOLAR", col:"ERF_solar_rel1850_Wm2", canvas:"plotInSOLAR", mini:"miniSOLAR", yDigits:2, title:"Solar", units:"W/m²"},
   ];
 

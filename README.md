@@ -57,34 +57,42 @@ The scripts are plain (non-module) JavaScript loaded in dependency order and
 sharing one scope — which is what lets the same code run unbundled from `file://`
 and be trivially inlined into a single file.
 
-## Simple (emissions) vs full (ERF) inputs
+## Simple vs full model (all inputs are emissions)
 
-By default the model runs in **simple mode**, with emission inputs only — as in
-the original Carbonator: CO2 and CH4 emissions, human aerosol emissions
-(Tg SO2/yr, forcing proportional to the emission rate), volcanic aerosol
-injection (stratospheric optical depth per year, decaying with a ~1.2-yr
-lifetime, -20 W/m2 per unit AOD) and solar forcing. The minor forcings (ozone,
-N2O, other WMGHG) are excluded, so idealised experiments are exactly
-zero-forcing outside what the user sets — and a simple-mode historical run
-deliberately undershoots observations (a teaching opportunity).
+The model is emission-driven end to end. The default **simple model** has four
+emission inputs, as in the original Carbonator — CO2, CH4, human aerosols
+(Tg SO2/yr; forcing proportional to the emission rate), volcanic aerosol
+injection (stratospheric optical depth per year; ~1.2-yr lifetime, -20 W/m2
+per unit AOD) — plus solar forcing. The minor gases are excluded, so idealised
+experiments are exactly zero-forcing outside what the user sets, and a
+simple-mode historical run deliberately undershoots observations (a teaching
+opportunity).
+
+The **Full model (all gases)** toggle adds three more emission inputs
+(js/model.js, MINOR_GHG):
+
+- **N2O** — one-box, 120-yr lifetime, square-root forcing (Tg N2O/yr).
+- **Ozone precursors** — tropospheric ozone forms from short-lived pollution
+  (NOx, CO, VOCs), so forcing is proportional to a precursor emission index
+  (~Tg/yr; 0.004 W/m2 per unit).
+- **Synthetic gases** — the CFC/HFC basket as ONE equivalent gas: linear
+  forcing per ppt CFC-12-equivalent, one-box with a 100-yr effective lifetime
+  (kt CFC-12-eq/yr). The derived emission history peaks in 1988 and falls —
+  the Montreal Protocol, visible in the inputs.
+
+All pseudo-emission series are derived once per scenario by exact annual
+inversion of the RCMIP ERF series (addDerivedEmissionCols); the full model
+reproduces the ERF-driven forcings to ~3 decimal places, so its temperatures
+match observations as before.
 
 The two modes use different default climate sensitivities, stated in the
-explainer: 3.0 degC per CO2 doubling in the full model (IPCC best estimate) and
-3.7 degC in the simple model (within the IPCC likely range of 2.5-4.0 degC),
-partly compensating for the excluded forcings so end-of-century warming stays
-close to the full model (SSP5-8.5 2100: 4.8 vs 5.0 degC). Historical warming
-still undershoots observations in simple mode — ocean inertia means sensitivity
-cannot make up for missing 20th-century forcing — which is left as a deliberate
-teaching point. (The original Carbonator instead matched history with a weak
-aerosol coefficient, -0.0052 W/m2 per Tg SO2, plus lambda = 1; compensating
-choices that this version avoids.) A custom S set in the parameter editor is
-preserved across mode switches.
-
-The **Full model (ERF inputs)** toggle in the scenario Controls switches to the
-complete forcing-driven model (an explainer appears the first time). Aerosol and
-volcanic curve edits are converted between representations on switching, so the
-scenario keeps its meaning. Emission/ERF conversions live in js/model.js
-(SIMPLE_INPUTS, volcEmisToErf/volcErfToEmis, addSimpleEmissionCols).
+explainer: 3.0 degC per CO2 doubling in the full model (IPCC best estimate)
+and 3.7 degC in the simple model (within the IPCC likely range of 2.5-4.0
+degC), partly compensating for the excluded gases so end-of-century warming
+stays close to the full model. Historical warming still undershoots
+observations in simple mode — ocean inertia means sensitivity cannot make up
+for missing 20th-century forcing — a deliberate teaching point. A custom S set
+in the parameter editor is preserved across mode switches.
 
 ## Saving and loading scenarios
 
