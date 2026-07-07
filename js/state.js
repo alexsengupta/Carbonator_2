@@ -103,3 +103,14 @@
     lastOutput: null
   };
 
+  // Default climate sensitivity depends on the input mode (see SIMPLE_INPUTS.S)
+  function defaultS(){
+    return state.inputMode === "emissions" ? SIMPLE_INPUTS.S : DEFAULTS.params.S;
+  }
+  function defaultParams(){
+    const p = JSON.parse(JSON.stringify(DEFAULTS.params));
+    p.S = defaultS();
+    return p;
+  }
+  state.params.S = defaultS(); // initial mode is "emissions"
+

@@ -353,7 +353,7 @@
 
   function resetScenario(){
     state.toggles = {...DEFAULTS.toggles};
-    state.params = JSON.parse(JSON.stringify(DEFAULTS.params));
+    state.params = defaultParams();
     state.outputPanels = {...DEFAULTS.outputPanels};
     state.local = {...DEFAULTS.local};
     state.concLines = {...DEFAULTS.concLines};

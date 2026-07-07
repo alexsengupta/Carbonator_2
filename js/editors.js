@@ -707,7 +707,7 @@
     });
 
     wrap.querySelector("#resetParams").addEventListener("click", ()=>{
-      state.params = JSON.parse(JSON.stringify(DEFAULTS.params));
+      state.params = defaultParams();
       updateEditBadges();
       updateIVToggle();
       closeModal();

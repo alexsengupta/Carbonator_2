@@ -114,7 +114,7 @@
                              Object.keys(state.params.methaneOverrides||{}).length>0 ||
                              Object.keys(state.params.seaOverrides||{}).length>0 ||
                              state.params.carbonConfig !== DEFAULTS.params.carbonConfig ||
-                             state.params.S !== DEFAULTS.params.S ||
+                             state.params.S !== defaultS() ||
                              state.params.cu !== DEFAULTS.params.cu ||
                              state.params.cl !== DEFAULTS.params.cl ||
                              state.params.gamma !== DEFAULTS.params.gamma ||
@@ -193,7 +193,11 @@
       if (cs.ERF_aerosol_rel1850_Wm2){ cs.E_SO2_Tg_yr = cs.ERF_aerosol_rel1850_Wm2.map(v => v/SIMPLE_INPUTS.kAer); delete cs.ERF_aerosol_rel1850_Wm2; }
       if (cs.ERF_volcanic_rel1850_Wm2){ cs.E_volcAOD_yr = volcErfToEmis(cs.ERF_volcanic_rel1850_Wm2); delete cs.ERF_volcanic_rel1850_Wm2; }
     }
+    // Each mode has its own default climate sensitivity; follow it unless the
+    // user has set a custom value in the parameter editor.
+    const sWasDefault = state.params.S === defaultS();
     state.inputMode = mode;
+    if (sWasDefault) state.params.S = defaultS();
     state.lastOutput = null;
     if (state.mode === "output") state.mode = "edit";
     if (mode === "full" && !state.erfNoticeShown){
@@ -215,6 +219,10 @@
             In emissions mode the injected aerosol decays with a ~1.2-year lifetime (−20 W/m² per unit optical depth).</li>
         <li><b>Three additional forcings appear</b>: ozone, N₂O and other well-mixed greenhouse gases.
             These are <i>excluded</i> in emissions mode — one reason a simple-mode run does not exactly match observations.</li>
+        <li><b>Climate sensitivity changes too</b>: the full model uses 3.0&nbsp;°C per CO₂ doubling (the IPCC best
+            estimate), while the simple model uses 3.7&nbsp;°C (within the IPCC likely range of 2.5–4.0&nbsp;°C) to
+            partly compensate for the excluded forcings. Even so, the simple model warms less than observed over the
+            historical period — worth asking why!</li>
       </ul>
       <p style="font-size:12px; color:#666; margin-bottom:0;">Any aerosol or volcanic curves you edited have been converted
       to their ERF equivalents. Run the scenario again to see outputs.</p>
@@ -817,7 +825,7 @@
     state.scenario = key;
     state.mode = "edit";
     state.toggles = {...DEFAULTS.toggles};
-    state.params = JSON.parse(JSON.stringify(DEFAULTS.params));
+    state.params = defaultParams();
     state.outputPanels = {...DEFAULTS.outputPanels};
     state.local = {...DEFAULTS.local};
     state.concLines = {...DEFAULTS.concLines};

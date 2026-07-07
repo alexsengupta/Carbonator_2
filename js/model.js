@@ -53,7 +53,14 @@
   const SIMPLE_INPUTS = {
     kAer: -0.009,  // W/m² per Tg SO2/yr (~110 Tg/yr in 2005 -> ~ -1 W/m²)
     vf:   -20,     // W/m² per unit stratospheric AOD (Pinatubo AOD~0.15 -> ~ -3 W/m²)
-    vtau: 1.2      // yr, stratospheric aerosol decay (as in the original Carbonator)
+    vtau: 1.2,     // yr, stratospheric aerosol decay (as in the original Carbonator)
+    // Default climate sensitivity for the simple model. Higher than the full
+    // model's 3.0 °C (IPCC best estimate) but within the IPCC likely range
+    // (2.5-4.0 °C); partly compensates for the excluded minor forcings so that
+    // end-of-century warming stays close to the full model. Historical warming
+    // still undershoots observations (ocean inertia limits what sensitivity can
+    // do over a ramp) — a deliberate teaching point.
+    S: 3.7
   };
 
   // Annual volcanic AOD-injection series -> annual ERF series (exact annual step)
