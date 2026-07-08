@@ -51,6 +51,7 @@
     ["F_o3","Ozone forcing (W/m²)"],
     ["F_solar","Solar forcing (W/m²)"],
     ["F_volc","Volcanic forcing (W/m²)"],
+    ["F_alb","Albedo forcing (W/m²)"],
     ["q_int_Wm2","Internal heat exchange q (W/m² annual mean)"],
     ["q_int_rms_Wm2","Internal heat exchange q (W/m² annual RMS)"],
     ["SL_total_m","Sea level rise total (m)"],
@@ -60,7 +61,7 @@
 
   const DEFAULTS = {
     uiMode: "basic",
-    toggles: { CO2:true, CH4:true, AER:true, O3:true, N2O:true, OTHER:true, VOLC:true, SOLAR:true },
+    toggles: { CO2:true, CH4:true, AER:true, O3:true, N2O:true, OTHER:true, VOLC:true, SOLAR:true, ALB:true },
     params: {
       S:3.0, cu:8.0, cl:110.0, gamma:0.7,
       carbonConfig:2,
@@ -73,7 +74,7 @@
     local: {lat:0, lon:0, mapVar:"tas"},
     concLines: { CO2:true, CH4:true, N2O:true, OTHER:false },
     carbonLines: { atm:true, veg:true, soil:true, upper:false, deep:false },
-    forcingLines: { total:true, co2:true, ch4:true, n2o:true, other:true, o3:true, aer:true, solar:true, volc:true },
+    forcingLines: { total:true, co2:true, ch4:true, n2o:true, other:true, o3:true, aer:true, solar:true, volc:true, alb:false },
     compare: { hadcrut:false, gistemp:false, berkeley:false, cmip:false },
     curveDetailLevel: 1, // 0:25y, 1:10y, 2:5y, 3:1y (default 10y)
     viewStart: 1850,
@@ -82,11 +83,22 @@
 
 
 
+  // Three separate model versions, chosen per page (no in-app switching):
+  //   index.html            -> "full"   (production: everything emission-driven)
+  //   index.html?model=simple  or simple.html -> "simple"
+  //   index.html?model=mixed   or mixed.html  -> "mixed" (minor GHGs as ERF)
+  // The standalone builder can bake a variant in via window.__MODEL_VARIANT.
+  const APP_VARIANT = (function(){
+    const v = window.__MODEL_VARIANT
+      || new URLSearchParams(window.location.search).get("model")
+      || "full";
+    return ["simple", "mixed", "full"].includes(v) ? v : "full";
+  })();
+
   let state = {
     scenario: null,
     mode: "home", // home | edit | output
-    inputMode: "emissions", // "emissions" (simple, default) | "full" (ERF inputs)
-    erfNoticeShown: false,  // full-model explainer shown once per session
+    inputMode: APP_VARIANT === "simple" ? "emissions" : APP_VARIANT, // fixed per page
     uiMode: DEFAULTS.uiMode,
     viewStart: DEFAULTS.viewStart,
     viewEnd: DEFAULTS.viewEnd,
@@ -103,14 +115,14 @@
     lastOutput: null
   };
 
-  // Default climate sensitivity depends on the input mode (see SIMPLE_INPUTS.S)
+  // Default climate sensitivity depends on the model variant (see SIMPLE_INPUTS.S)
   function defaultS(){
-    return state.inputMode === "emissions" ? SIMPLE_INPUTS.S : DEFAULTS.params.S;
+    return APP_VARIANT === "simple" ? SIMPLE_INPUTS.S : DEFAULTS.params.S;
   }
   function defaultParams(){
     const p = JSON.parse(JSON.stringify(DEFAULTS.params));
     p.S = defaultS();
     return p;
   }
-  state.params.S = defaultS(); // initial mode is "emissions"
+  state.params.S = defaultS();
 

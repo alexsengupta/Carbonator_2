@@ -79,25 +79,51 @@
     return `rgba(${r},${g},${b},${(a/255).toFixed(3)})`;
   }
 
-  // simple sequential and diverging ramps
-  function rampSeq(t){
-    // light -> blue
-    const c0=[255,255,232], c1=[49,130,189];
-    return [lerp(c0[0],c1[0],t), lerp(c0[1],c1[1],t), lerp(c0[2],c1[2],t), 255];
-  }
-  function rampDiv(t){
-    // t in [-1,1] : red-white-blue
-    const neg=[215,48,39], mid=[255,255,255], pos=[69,117,180];
-    if (t<0){
-      const u = clamp((t+1),0,1); // -1..0 -> 0..1
+  // White-centered diverging ramps: t in [-1, 1], white at 0 (= the global
+  // average value of the field), so colour shows departure from the average.
+  function rampBetween(neg, mid, pos, t){
+    if (t < 0){
+      const u = clamp(t + 1, 0, 1);
       return [lerp(neg[0],mid[0],u), lerp(neg[1],mid[1],u), lerp(neg[2],mid[2],u), 255];
-    }else{
-      const u = clamp(t,0,1); // 0..1
-      return [lerp(mid[0],pos[0],u), lerp(mid[1],pos[1],u), lerp(mid[2],pos[2],u), 255];
     }
+    const u = clamp(t, 0, 1);
+    return [lerp(mid[0],pos[0],u), lerp(mid[1],pos[1],u), lerp(mid[2],pos[2],u), 255];
   }
+  const WHITE = [255,255,255];
+  const RAMPS = {
+    tas: t => rampBetween([33,102,172], WHITE, [178,24,43], t),   // blue-white-red (warming above/below average)
+    pr:  t => rampBetween([140,81,10], WHITE, [1,102,94], t),     // brown-white-teal (drier/wetter)
+    slr: t => rampBetween([33,102,172], WHITE, [178,24,43], t)    // blue-white-red (less/more rise than average)
+  };
 
   const _mapCache = {tas:null, pr:null, slr:null};
+
+  // Land mask from the sea-level field (NaN over land); used to draw
+  // coastlines on every map. Computed once.
+  const LAND_EDGE = (function(){
+    if (!PATTERN || !PATTERN.slr) return null;
+    const g = PATTERN.grid, w = g.nlon, h = g.nlat;
+    const isLand = i => !Number.isFinite(PATTERN.slr[i]);
+    const edge = new Uint8Array(w*h);
+    for (let la=0; la<h; la++){
+      for (let lo=0; lo<w; lo++){
+        const i = la*w + lo;
+        if (!isLand(i)) continue;
+        const nbrs = [
+          la > 0 ? (la-1)*w + lo : -1,
+          la < h-1 ? (la+1)*w + lo : -1,
+          la*w + ((lo+1) % w),
+          la*w + ((lo-1+w) % w)
+        ];
+        if (nbrs.some(n => n >= 0 && !isLand(n))) edge[i] = 1;
+      }
+    }
+    return edge;
+  })();
+
+  // Centres for the white midpoint of each map: tas_amp averages to exactly 1
+  // (by construction), pr and slr departures average to ~0.
+  const MAP_CENTER = {tas: 1.0, pr: 0.0, slr: 0.0};
 
   function buildMapImage(varKey){
     if (!PATTERN) return null;
@@ -109,17 +135,16 @@
                : PATTERN.tasAmp;
     if (!data) return null;
 
-    let vmin, vmax, diverge=false;
-    if (varKey === "pr" || varKey === "slr"){
-      diverge = true;
-      // symmetric range around 0 for nicer display
-      const vm = PATTERN.meta.vars[varKey === "pr" ? "pr_pct_perC" : "slr_cm_perC"];
-      const m = Math.max(Math.abs(vm.vmin), Math.abs(vm.vmax));
-      vmin = -m; vmax = m;
-    }else{
-      vmin = PATTERN.meta.vars.tas_amp.vmin;
-      vmax = PATTERN.meta.vars.tas_amp.vmax;
-    }
+    const metaVar = PATTERN.meta.vars[varKey === "pr" ? "pr_pct_perC" : varKey === "slr" ? "slr_cm_perC" : "tas_amp"];
+    const center = MAP_CENTER[varKey] ?? 0;
+    // Two-slope scaling: white sits exactly on the centre (the global average),
+    // and each side uses its own data range — so the colour bar labels are the
+    // real data limits (an amplification factor cannot be negative, etc.)
+    const mNeg = Math.max(center - metaVar.vmin, 1e-9);
+    const mPos = Math.max(metaVar.vmax - center, 1e-9);
+    const vmin = metaVar.vmin, vmax = metaVar.vmax;
+    const ramp = RAMPS[varKey] || RAMPS.tas;
+    const toT = v => clamp((v - center) / (v < center ? mNeg : mPos), -1, 1);
 
     for (let iy=0; iy<h; iy++){
       const ilat = (h-1-iy); // flip so north is at top
@@ -129,13 +154,11 @@
         let rgba;
         if (!Number.isFinite(v)){
           rgba = [206, 210, 214, 255]; // land / no data
-        }else if (diverge){
-          const t = clamp((v - 0)/(vmax-0), -1, 1);
-          rgba = rampDiv(t);
         }else{
-          const t = clamp((v - vmin)/(vmax - vmin), 0, 1);
-          rgba = rampSeq(t);
+          rgba = ramp(toT(v));
         }
+        // coastline overlay
+        if (LAND_EDGE && LAND_EDGE[idx]) rgba = [90, 96, 102, 255];
         const p = (iy*w + ix)*4;
         img.data[p+0]=rgba[0];
         img.data[p+1]=rgba[1];
@@ -143,7 +166,39 @@
         img.data[p+3]=rgba[3];
       }
     }
-    return {img, vmin, vmax, diverge};
+    return {img, vmin, vmax, center, ramp, units: metaVar.units};
+  }
+
+  // Horizontal colour bar under the map: min / centre (global average) / max
+  function drawColorbar(cache){
+    const cv = el("mapColorbar");
+    if (!cv) return;
+    const ctx = cv.getContext("2d");
+    const w = cv.width, h = cv.height;
+    ctx.clearRect(0,0,w,h);
+    const barH = 12, pad = 6, y0 = 2;
+    for (let x = pad; x < w - pad; x++){
+      const t = ((x - pad)/(w - 2*pad))*2 - 1;
+      const c = cache.ramp(t);
+      ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+      ctx.fillRect(x, y0, 1, barH);
+    }
+    ctx.strokeStyle = "#9aa8b3";
+    ctx.strokeRect(pad, y0, w - 2*pad, barH);
+    // centre tick (the global average = white)
+    ctx.strokeStyle = "#444";
+    ctx.beginPath();
+    ctx.moveTo(w/2, y0); ctx.lineTo(w/2, y0 + barH + 3);
+    ctx.stroke();
+    ctx.fillStyle = "#444";
+    ctx.font = "10px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(cache.vmin.toFixed(1), pad, y0 + barH + 12);
+    ctx.textAlign = "center";
+    ctx.fillText(`${cache.center.toFixed(0)} (global avg)  ${cache.units || ""}`, w/2, y0 + barH + 12);
+    ctx.textAlign = "right";
+    ctx.fillText(cache.vmax.toFixed(1), w - pad, y0 + barH + 12);
+    ctx.textAlign = "left";
   }
 
   function lonLatToCanvasXY(lon, lat, canvas){
@@ -178,6 +233,7 @@
     const ctx = canvas.getContext("2d");
     ctx.imageSmoothingEnabled = false;
     ctx.putImageData(cache.img, 0, 0);
+    drawColorbar(cache);
 
     // Crosshair at selected location
     const lat = state.local.lat ?? 0;
@@ -287,28 +343,37 @@
 
 
 
-  // Input variables. All inputs are emissions (plus solar forcing). The minor
-  // GHGs (simpleHidden) appear only in the full model; the simple model
-  // excludes them entirely.
+  // Input variables. The minor GHGs (simpleHidden) are absent in the simple
+  // variant, prescribed as ERF (mixed* fields) in the mixed variant, and
+  // emission-driven in the full variant.
   const INPUT_VARS = [
     {toggle:"CO2", col:"E_CO2_GtC_yr", canvas:"plotInCO2", mini:"miniCO2", yDigits:1, title:"CO₂", units:"GtC/yr"},
     {toggle:"CH4", col:"E_CH4_TgCH4_yr", canvas:"plotInCH4", mini:"miniCH4", yDigits:0, title:"CH₄", units:"Tg/yr"},
     {toggle:"AER", col:"E_SO2_Tg_yr", canvas:"plotInAER", mini:"miniAER", yDigits:0, title:"Aerosol emissions", units:"Tg SO₂/yr"},
-    {toggle:"O3", col:"E_O3prec_Tg_yr", canvas:"plotInO3", mini:"miniO3", yDigits:0, title:"Ozone precursors", units:"Tg/yr", simpleHidden:true},
-    {toggle:"N2O", col:"E_N2O_Tg_yr", canvas:"plotInN2O", mini:"miniN2O", yDigits:1, title:"N₂O emissions", units:"Tg N₂O/yr", simpleHidden:true},
-    {toggle:"OTHER", col:"E_XGHG_kt_yr", canvas:"plotInOTHER", mini:"miniOTHER", yDigits:0, title:"Synthetic gases", units:"kt CFC-12-eq/yr", simpleHidden:true},
+    {toggle:"O3", col:"E_O3prec_Tg_yr", canvas:"plotInO3", mini:"miniO3", yDigits:0, title:"Ozone precursors", units:"Tg/yr", simpleHidden:true,
+      mixedCol:"ERF_o3_total_rel1850_Wm2", mixedTitle:"Ozone ERF", mixedUnits:"W/m²", mixedDigits:2,
+      mixedSub:"Effective radiative forcing from ozone (W/m², relative to 1850)."},
+    {toggle:"N2O", col:"E_N2O_Tg_yr", canvas:"plotInN2O", mini:"miniN2O", yDigits:1, title:"N₂O emissions", units:"Tg N₂O/yr", simpleHidden:true,
+      mixedCol:"ERF_N2O_rel1850_Wm2", mixedTitle:"N₂O ERF", mixedUnits:"W/m²", mixedDigits:2,
+      mixedSub:"Effective radiative forcing from nitrous oxide (W/m², relative to 1850)."},
+    {toggle:"OTHER", col:"E_XGHG_kt_yr", canvas:"plotInOTHER", mini:"miniOTHER", yDigits:0, title:"Synthetic gases", units:"kt CFC-12-eq/yr", simpleHidden:true,
+      mixedCol:"ERF_otherWMGHG_rel1850_Wm2", mixedTitle:"Other WMGHG ERF", mixedUnits:"W/m²", mixedDigits:2,
+      mixedSub:"Effective radiative forcing from other well-mixed greenhouse gases (W/m², relative to 1850)."},
     {toggle:"VOLC", col:"E_volcAOD_yr", canvas:"plotInVOLC", mini:"miniVOLC", yDigits:3, title:"Volcanic injection", units:"AOD/yr"},
     {toggle:"SOLAR", col:"ERF_solar_rel1850_Wm2", canvas:"plotInSOLAR", mini:"miniSOLAR", yDigits:2, title:"Solar", units:"W/m²"},
+    {toggle:"ALB", col:"albedo", canvas:"plotInALB", mini:"miniALB", yDigits:3, title:"Albedo", units:"reflectivity"},
   ];
 
-  // Mode-aware accessors (state is defined later; these are called at render time)
-  function inputVarActive(v){ return !(state.inputMode === "emissions" && v.simpleHidden); }
-  function inputVarCol(v){ return (state.inputMode === "emissions" && v.simpleCol) ? v.simpleCol : v.col; }
-  function inputVarTitle(v){ return (state.inputMode === "emissions" && v.simpleTitle) ? v.simpleTitle : v.title; }
-  function inputVarUnits(v){ return (state.inputMode === "emissions" && v.simpleUnits) ? v.simpleUnits : v.units; }
-  function inputVarDigits(v){ return (state.inputMode === "emissions" && v.simpleDigits != null) ? v.simpleDigits : v.yDigits; }
+  // Variant-aware accessors (APP_VARIANT is defined in state.js; these are
+  // only called at render time, after all scripts have loaded)
+  function inputVarActive(v){ return !(APP_VARIANT === "simple" && v.simpleHidden); }
+  function inputVarCol(v){ return (APP_VARIANT === "mixed" && v.mixedCol) ? v.mixedCol : v.col; }
+  function inputVarTitle(v){ return (APP_VARIANT === "mixed" && v.mixedTitle) ? v.mixedTitle : v.title; }
+  function inputVarUnits(v){ return (APP_VARIANT === "mixed" && v.mixedUnits) ? v.mixedUnits : v.units; }
+  function inputVarDigits(v){ return (APP_VARIANT === "mixed" && v.mixedDigits != null) ? v.mixedDigits : v.yDigits; }
 
   const TOGGLE_DOM = {
+    ALB: {cb:"togALB", st:"stateALB"},
     CO2: {cb:"togCO2", st:"stateCO2"},
     CH4: {cb:"togCH4", st:"stateCH4"},
     AER: {cb:"togAER", st:"stateAER"},

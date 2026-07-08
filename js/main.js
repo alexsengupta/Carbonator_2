@@ -3,27 +3,28 @@
   // ========================
   // Input columns/display names follow the input mode (emissions vs full ERF)
   function inputsHeaderMap(){
-    if (state.inputMode === "emissions"){
-      return [
-        ["year","Year"],
-        ["E_CO2_GtC_yr","CO₂ emissions (GtC/yr)"],
-        ["E_CH4_TgCH4_yr","CH₄ emissions (TgCH₄/yr)"],
-        ["E_SO2_Tg_yr","Aerosol emissions (Tg SO₂/yr)"],
-        ["E_volcAOD_yr","Volcanic aerosol injection (AOD/yr)"],
-        ["ERF_solar_rel1850_Wm2","Solar ERF (W/m² rel. 1850)"],
-      ];
-    }
-    return [
+    const base = [
       ["year","Year"],
       ["E_CO2_GtC_yr","CO₂ emissions (GtC/yr)"],
       ["E_CH4_TgCH4_yr","CH₄ emissions (TgCH₄/yr)"],
       ["E_SO2_Tg_yr","Aerosol emissions (Tg SO₂/yr)"],
       ["E_volcAOD_yr","Volcanic aerosol injection (AOD/yr)"],
+    ];
+    const tail = [
+      ["ERF_solar_rel1850_Wm2","Solar ERF (W/m² rel. 1850)"],
+      ["albedo","Albedo (planet reflectivity)"],
+    ];
+    if (APP_VARIANT === "simple") return [...base, ...tail];
+    if (APP_VARIANT === "mixed") return [...base,
+      ["ERF_N2O_rel1850_Wm2","N₂O ERF (W/m² rel. 1850)"],
+      ["ERF_o3_total_rel1850_Wm2","Ozone ERF (W/m² rel. 1850)"],
+      ["ERF_otherWMGHG_rel1850_Wm2","Other WMGHG ERF (W/m² rel. 1850)"],
+      ...tail];
+    return [...base,
       ["E_N2O_Tg_yr","N₂O emissions (Tg N₂O/yr)"],
       ["E_O3prec_Tg_yr","Ozone precursor emissions (Tg/yr)"],
       ["E_XGHG_kt_yr","Synthetic gas emissions (kt CFC-12-eq/yr)"],
-      ["ERF_solar_rel1850_Wm2","Solar ERF (W/m² rel. 1850)"],
-    ];
+      ...tail];
   }
 
   function openDataTable(){
@@ -156,13 +157,7 @@
   bindToggle("togOTHER","OTHER");
   bindToggle("togVOLC","VOLC");
   bindToggle("togSOLAR","SOLAR");
-
-  // simple (emissions) vs full (ERF) inputs
-  if (el("togFullModel")){
-    el("togFullModel").addEventListener("change", ()=>{
-      setInputMode(el("togFullModel").checked ? "full" : "emissions");
-    });
-  }
+  bindToggle("togALB","ALB");
 
   // internal variability toggle (energy-conserving; default settings unless edited in Advanced)
   el("togIV").addEventListener("change", ()=>{
@@ -298,7 +293,7 @@
     });
   });
 
-  ["fShowTotal","fShowCO2","fShowCH4","fShowN2O","fShowOther","fShowO3","fShowAER","fShowSolar","fShowVolc"].forEach(id=>{
+  ["fShowTotal","fShowCO2","fShowCH4","fShowN2O","fShowOther","fShowO3","fShowAER","fShowSolar","fShowVolc","fShowAlb"].forEach(id=>{
     el(id).addEventListener("change", ()=>{
       state.forcingLines = {
         total: el("fShowTotal").checked,
@@ -310,6 +305,7 @@
         aer: el("fShowAER").checked,
         solar: el("fShowSolar").checked,
         volc: el("fShowVolc").checked,
+        alb: el("fShowAlb") ? el("fShowAlb").checked : false,
       };
       rerenderIfOutput();
     });
@@ -325,11 +321,15 @@
     renderAll();
   });
 
-  // Edit curve buttons (delegated)
+  // Edit curve buttons (delegated). In the mixed variant the minor-GHG cards
+  // display (and therefore edit) the ERF column rather than the emission column.
   document.addEventListener("click", (e)=>{
     const btn = e.target.closest("[data-edit]");
     if (!btn) return;
-    openCurveEditor(btn.getAttribute("data-edit"));
+    let varKey = btn.getAttribute("data-edit");
+    const mv = INPUT_VARS.find(v => v.col === varKey);
+    if (mv) varKey = inputVarCol(mv);
+    openCurveEditor(varKey);
   });
 
   // Run / reset

@@ -54,6 +54,8 @@
     kAer: -0.009,  // W/m² per Tg SO2/yr (~110 Tg/yr in 2005 -> ~ -1 W/m²)
     vf:   -20,     // W/m² per unit stratospheric AOD (Pinatubo AOD~0.15 -> ~ -3 W/m²)
     vtau: 1.2,     // yr, stratospheric aerosol decay (as in the original Carbonator)
+    alb0: 0.31,    // baseline planetary albedo
+    S0q:  340,     // S0/4, W/m²: forcing = -S0q * (albedo - alb0)
     // Default climate sensitivity for the simple model. Higher than the full
     // model's 3.0 °C (IPCC best estimate) but within the IPCC likely range
     // (2.5-4.0 °C); partly compensates for the excluded minor forcings so that
@@ -143,6 +145,7 @@
       r.E_N2O_Tg_yr = en2o[i];
       r.E_O3prec_Tg_yr = Math.max(0, (r.ERF_o3_total_rel1850_Wm2 || 0)/MINOR_GHG.o3.kF);
       r.E_XGHG_kt_yr = exghg[i];
+      if (!Number.isFinite(r.albedo)) r.albedo = SIMPLE_INPUTS.alb0; // planetary reflectivity input
     });
   }
   const addSimpleEmissionCols = addDerivedEmissionCols; // backwards-compatible name
@@ -161,18 +164,28 @@
     const years = scenarioRows.map(r => r.year);
     const y0 = years[0], yN = years[years.length-1];
 
-    // The model is emission-driven throughout. In the simple ("emissions")
-    // mode the minor GHGs (N2O, ozone precursors, synthetic gases) are
-    // excluded; in the full mode they run as small emission-driven sub-models.
+    // Three model variants (params.inputMode):
+    //   "emissions" (simple) — CO2/CH4/aerosol/volcanic/solar/albedo only;
+    //                          minor GHGs excluded.
+    //   "mixed"              — as above, plus the minor GHGs prescribed as
+    //                          radiative forcing (ERF) time series.
+    //   "full"               — everything emission-driven, incl. the minor
+    //                          GHGs as small emission-driven sub-models.
     const simple = params.inputMode === "emissions";
+    const mixed = params.inputMode === "mixed";
 
     const s = {
       E_CO2: buildSeries(scenarioRows, "E_CO2_GtC_yr"),
       E_CH4: buildSeries(scenarioRows, "E_CH4_TgCH4_yr"),
       E_SO2: buildSeries(scenarioRows, "E_SO2_Tg_yr"),
       ERF_solar: buildSeries(scenarioRows, "ERF_solar_rel1850_Wm2"),
+      ALB: buildSeries(scenarioRows, "albedo"),
     };
-    if (!simple){
+    if (mixed){
+      s.ERF_N2O = buildSeries(scenarioRows, "ERF_N2O_rel1850_Wm2");
+      s.ERF_o3 = buildSeries(scenarioRows, "ERF_o3_total_rel1850_Wm2");
+      s.ERF_other = buildSeries(scenarioRows, "ERF_otherWMGHG_rel1850_Wm2");
+    } else if (!simple){
       s.E_N2O = buildSeries(scenarioRows, "E_N2O_Tg_yr");
       s.E_O3 = buildSeries(scenarioRows, "E_O3prec_Tg_yr");
       s.E_XGHG = buildSeries(scenarioRows, "E_XGHG_kt_yr");
@@ -289,10 +302,15 @@
         volcA += ((volcEmisByYear.get(y) ?? 0) - volcA/SIMPLE_INPUTS.vtau) * dt;
         const F_volc = SIMPLE_INPUTS.vf * volcA;
         const F_solar = s.ERF_solar.interp(t);
+        const F_alb = -SIMPLE_INPUTS.S0q * (s.ALB.interp(t) - SIMPLE_INPUTS.alb0);
 
         let F_o3, F_n2o, F_other;
         if (simple){
           F_o3 = 0; F_n2o = 0; F_other = 0;
+        } else if (mixed){
+          F_n2o = s.ERF_N2O.interp(t);
+          F_o3 = s.ERF_o3.interp(t);
+          F_other = s.ERF_other.interp(t);
         } else {
           const gN = MINOR_GHG.n2o, gX = MINOR_GHG.xghg;
           Cn2o += ((n2oEnat + Math.max(0, s.E_N2O.interp(t)))/gN.tgPerPpb - Cn2o/gN.tau) * dt;
@@ -338,7 +356,7 @@
 
         fVolcSum += F_volc;
 
-        const F_total = F_co2 + F_ch4 + F_n2o + F_other + F_aer + F_o3 + F_solar + F_volc;
+        const F_total = F_co2 + F_ch4 + F_n2o + F_other + F_aer + F_o3 + F_solar + F_volc + F_alb;
 
         // Internal variability heat exchange q(t)
         let q = 0;
@@ -378,9 +396,14 @@
       const F_solar_m = s.ERF_solar.interp(tm);
       const F_aer_m = SIMPLE_INPUTS.kAer * s.E_SO2.interp(tm);
       const F_volc_m = fVolcSum/12; // annual mean of the integrated volcanic forcing
+      const F_alb_m = -SIMPLE_INPUTS.S0q * (s.ALB.interp(tm) - SIMPLE_INPUTS.alb0);
       let F_o3_m, F_n2o_m, F_other_m;
       if (simple){
         F_o3_m = 0; F_n2o_m = 0; F_other_m = 0;
+      } else if (mixed){
+        F_n2o_m = s.ERF_N2O.interp(tm);
+        F_o3_m = s.ERF_o3.interp(tm);
+        F_other_m = s.ERF_other.interp(tm);
       } else {
         F_n2o_m = MINOR_GHG.n2o.kF * (Math.sqrt(Math.max(Cn2o, 1e-6)) - Math.sqrt(MINOR_GHG.n2o.C0));
         F_other_m = MINOR_GHG.xghg.kF * Cxghg;
@@ -392,7 +415,7 @@
       const ppmCO2 = Ca/2.13;
       const F_co2 = 5.35 * Math.log(Ca / Ca0);
       const F_ch4 = 0.0316 * (Math.sqrt(M) - Math.sqrt(M0));
-      const F_total = F_co2 + F_ch4 + F_n2o_m + F_other_m + F_aer_m + F_o3_m + F_solar_m + F_volc_m;
+      const F_total = F_co2 + F_ch4 + F_n2o_m + F_other_m + F_aer_m + F_o3_m + F_solar_m + F_volc_m + F_alb_m;
 
       // Sea level total (relative to 1850)
       const SL_total = SL_therm + SL_ice;
@@ -419,6 +442,7 @@
         F_o3: F_o3_m,
         F_solar: F_solar_m,
         F_volc: F_volc_m,
+        F_alb: F_alb_m,
         q_int_Wm2: qSum/12,
         q_int_rms_Wm2: Math.sqrt(qSum2/12),
         SL_total_m: SL_total,

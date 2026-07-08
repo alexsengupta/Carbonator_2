@@ -53,6 +53,7 @@
             <button class="btn orange" id="btnStartDefault">Start with SSP2-4.5</button>
             <button class="btn" id="btnOpenInputsCSV">Download input data (CSV)</button>
           </div>
+          <div class="footnote" id="variantNote" style="margin:10px 0 0;"></div>
         </div>
 
         <div class="info-bar">
@@ -98,15 +99,7 @@
             <div class="smallpanel">
               <div class="label">Controls</div>
               <div class="hint" id="controlsHint">Toggle inputs on/off, then run the model.</div>
-              <div class="toggle-row" style="margin-top:10px;" title="OFF (default): simple model — CO₂, CH₄, aerosols and volcanoes only. ON: full model — adds N₂O, ozone-forming pollution and synthetic industrial gases (all as emissions).">
-                <label class="switch">
-                  <input type="checkbox" id="togFullModel" />
-                  <span class="slider"></span>
-                </label>
-                <div>Full model (all gases)</div>
-                <div class="state" id="stateFullModel">OFF</div>
-              </div>
-              <div class="toggle-row" style="margin-top:6px;" title="Adds ENSO-like year-to-year variability using an energy-conserving stochastic heat exchange (tunable in Advanced parameters).">
+              <div class="toggle-row" style="margin-top:10px;" title="Adds ENSO-like year-to-year variability using an energy-conserving stochastic heat exchange (tunable in Advanced parameters).">
                 <label class="switch">
                   <input type="checkbox" id="togIV" />
                   <span class="slider"></span>
@@ -340,6 +333,31 @@
             </div>
           </div>
 
+          <!-- Albedo -->
+          <div class="plot-card">
+            <div class="plot-row">
+              <div class="plot-left">
+                <div class="title">Albedo</div>
+                <div class="subtitle">Planetary reflectivity (0 = absorbs all sunlight, 1 = reflects everything). The baseline is 0.31; making the planet brighter reflects more sunlight and cools it (−3.4 W/m² per +0.01).</div>
+                <div class="toggle-row">
+                  <label class="switch">
+                    <input type="checkbox" id="togALB" checked />
+                    <span class="slider"></span>
+                  </label>
+                  <div>Enable</div>
+                  <div class="state" id="stateALB">ON</div>
+                </div>
+                <div class="toggle-row advOnly" style="margin-top:8px;">
+                  <button class="btn" type="button" data-edit="albedo">Edit curve…</button>
+                  <span class="badge" id="badge_albedo" style="display:none;">EDITED</span>
+                </div>
+              </div>
+              <div class="plot-right">
+                <canvas id="plotInALB" data-height="240"></canvas>
+              </div>
+            </div>
+          </div>
+
           <div class="footnote">
             Tip: try disabling aerosols to see the “unmasking” effect; or disable CH₄ to see its fast impact on forcing.
           </div>
@@ -385,6 +403,10 @@
               <div class="mini-block">
                 <div class="mini-title">Solar ERF</div>
                 <canvas id="miniSOLAR" data-height="110"></canvas>
+              </div>
+              <div class="mini-block">
+                <div class="mini-title">Albedo</div>
+                <canvas id="miniALB" data-height="110"></canvas>
               </div>
             </div>
 
@@ -446,6 +468,7 @@
                       </div>
 
                       <canvas id="mapCanvas" class="mapCanvas" width="360" height="180" aria-label="Pattern map"></canvas>
+                      <canvas id="mapColorbar" width="360" height="34" style="width:100%; height:auto; display:block; margin-top:4px;"></canvas>
                       <div class="legendRow" id="mapLegend"></div>
                     </div>
                   </div>
@@ -514,6 +537,7 @@
                   <label title="Aerosol forcing"><input type="checkbox" id="fShowAER" checked /> Aerosol</label>
                   <label title="Solar forcing"><input type="checkbox" id="fShowSolar" checked /> Solar</label>
                   <label title="Volcanic forcing"><input type="checkbox" id="fShowVolc" checked /> Volcanic</label>
+                  <label title="Albedo forcing"><input type="checkbox" id="fShowAlb" /> Albedo</label>
                 </div>
                 <div class="chartBox resizable"><canvas id="plotOutF" data-height="260" class="autoHeight"></canvas></div>
               </div>

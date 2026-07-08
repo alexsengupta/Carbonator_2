@@ -40,7 +40,8 @@
     ERF_N2O_rel1850_Wm2:        ["erfn2orel1850wm2", "n2oerf", "n2o"],
     ERF_otherWMGHG_rel1850_Wm2: ["erfotherwmghgrel1850wm2", "otherwmghgerf", "otherwmghg", "other"],
     ERF_volcanic_rel1850_Wm2:   ["erfvolcanicrel1850wm2", "volcanicerf", "volcanic", "volc"],
-    ERF_solar_rel1850_Wm2:      ["erfsolarrel1850wm2", "solarerf", "solar"]
+    ERF_solar_rel1850_Wm2:      ["erfsolarrel1850wm2", "solarerf", "solar"],
+    albedo:                     ["albedo", "reflectivity", "alb"]
   };
 
   function loaderNormalize(h){
@@ -192,6 +193,7 @@
       baseRows = BY_SCENARIO.get("ssp245").map(r => {
         const o = {...r};
         for (const c of MODEL_COLS) o[c] = 0;
+        o.albedo = SIMPLE_INPUTS.alb0; // baseline reflectivity, not zero
         return o;
       });
       baseName = "zero baseline";

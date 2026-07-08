@@ -62,17 +62,16 @@
     }
 
     // --- White Roofs ---------------------------------------------------------
-    // Old app: albedo raised 0.31 -> 0.34 for 150 years. An albedo change of +0.03
-    // is equivalent to about -10 W/m² of shortwave forcing (0.03 x ~340 W/m²);
-    // it is applied here through the aerosol (shortwave reflection) channel.
+    // Old app: albedo raised 0.31 -> 0.34 for 150 years. Applied through the
+    // dedicated albedo input (forcing = -S0/4 x Δalbedo ≈ -10 W/m²).
     {
       const key = "whiteroofs";
       const rows = zeroRows(key);
       for (const r of rows){
-        if (r.year >= 2030 && r.year <= 2079) r.ERF_aerosol_rel1850_Wm2 = -10.2;
+        r.albedo = (r.year >= 2030 && r.year <= 2079) ? 0.34 : 0.31;
       }
       list.push({key, name:"White Roofs", group:"teaching", img:"assets/img/scenarios/whiteroofs.jpg", rows,
-        desc:"What would happen if we made the planet more reflective? All emissions are zero; planetary reflectivity (albedo) jumps from 0.31 to 0.34 between 2030 and 2080 (≈ −10 W/m², applied via the aerosol channel), then returns to normal."});
+        desc:"What would happen if we made the planet more reflective? All emissions are zero; planetary reflectivity (albedo) jumps from 0.31 to 0.34 between 2030 and 2080 (≈ −10 W/m² of reflected sunlight), then returns to normal."});
     }
 
     // --- Geoengineering ------------------------------------------------------

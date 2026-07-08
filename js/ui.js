@@ -38,7 +38,6 @@
       }
     });
     el("modeBadge").textContent = (state.uiMode==="advanced") ? "ADVANCED MODE" : "BASIC MODE";
-    el("controlsHint").textContent = "Toggle inputs on/off, then run the model.";
   }
 
   function setActiveSidebar(){
@@ -128,10 +127,15 @@
   }
 
   function updateEditBadges(){
-    // per-variable edited badges
+    // per-variable edited badges (badge ids use the emission column names;
+    // ERF-column edits in the mixed variant light up the same card's badge)
     document.querySelectorAll('[id^="badge_"]').forEach(span=>{ span.style.display="none"; });
     for (const k of Object.keys(state.customSeries)){
-      const b = el("badge_" + k);
+      let b = el("badge_" + k);
+      if (!b){
+        const mv = INPUT_VARS.find(v => v.mixedCol === k);
+        if (mv) b = el("badge_" + mv.col);
+      }
       if (b) b.style.display = "";
     }
     el("editBadge").innerHTML = hasAnyEdits() ? '<span class="badge">CUSTOM</span>' : '';
@@ -169,54 +173,14 @@
       if (!state.toggles.OTHER){ o.ERF_otherWMGHG_rel1850_Wm2 = 0; o.E_XGHG_kt_yr = 0; }
       if (!state.toggles.VOLC){ o.ERF_volcanic_rel1850_Wm2 = 0; o.E_volcAOD_yr = 0; }
       if (!state.toggles.SOLAR) o.ERF_solar_rel1850_Wm2 = 0;
+      if (!state.toggles.ALB) o.albedo = SIMPLE_INPUTS.alb0; // reset to baseline, not zero
 
       return o;
     });
   }
 
-  // Switch between the simple model (CO2, CH4, aerosols, volcanoes) and the
-  // full model (adds N2O, ozone precursors, synthetic gases). Both are
-  // emission-driven, so curve edits carry over unchanged.
-  function setInputMode(mode){
-    if (mode === state.inputMode) return;
-    // Each mode has its own default climate sensitivity; follow it unless the
-    // user has set a custom value in the parameter editor.
-    const sWasDefault = state.params.S === defaultS();
-    state.inputMode = mode;
-    if (sWasDefault) state.params.S = defaultS();
-    state.lastOutput = null;
-    if (state.mode === "output") state.mode = "edit";
-    if (mode === "full" && !state.erfNoticeShown){
-      state.erfNoticeShown = true;
-      openFullModelNotice();
-    }
-    renderAll();
-  }
-
-  function openFullModelNotice(){
-    const body = document.createElement("div");
-    body.innerHTML = `
-      <p style="margin-top:0;">You have switched from the <b>simple model</b> to the <b>full model</b>.
-      Three more types of emissions appear:</p>
-      <ul style="padding-left:18px; font-size:13px; line-height:1.55;">
-        <li><b>N₂O (nitrous oxide)</b> — mostly from farming and fertilisers. A strong greenhouse gas that
-            stays in the air for about 120 years.</li>
-        <li><b>Ozone-forming pollution</b> — gases from traffic and industry that create ozone near the
-            ground, which traps heat. It disappears within days if emissions stop.</li>
-        <li><b>Synthetic gases</b> — industrial chemicals like CFCs and HFCs. Watch their emissions peak
-            around 1990 and then fall: that is the Montreal Protocol, the world's most successful
-            environmental agreement.</li>
-      </ul>
-      <p style="font-size:13px;">The simple model leaves these out to stay simple — that is one reason its
-      historical warming comes out lower than what thermometers actually measured. The full model also uses a
-      slightly different <b>climate sensitivity</b> (how much the planet eventually warms if CO₂ doubles):
-      3.0&nbsp;°C instead of the simple model's 3.7&nbsp;°C — both inside the range scientists consider
-      likely (2.5–4&nbsp;°C).</p>
-      <p style="font-size:12px; color:#666; margin-bottom:0;">Your edited curves carry over unchanged.
-      Press <b>Run scenario</b> to see the results.</p>
-    `;
-    openModal("Full model: what just changed?", body);
-  }
+  // Model variants are separate pages (index.html?model=... / simple.html /
+  // mixed.html) — there is no in-app switching.
 
   // ========================
   // Rendering
@@ -337,17 +301,24 @@
     }
   }
 
-  function updateInputModeToggle(){
-    const cb = el("togFullModel");
-    if (!cb) return;
-    const full = state.inputMode === "full";
-    cb.checked = full;
-    const st = el("stateFullModel");
-    if (st) st.textContent = full ? "ON" : "OFF";
+  const VARIANT_INFO = {
+    simple: {name:"Simple model", hint:"Simple model: CO₂, CH₄, aerosols, volcanoes, solar and albedo. Minor gases are off."},
+    mixed:  {name:"Mixed model", hint:"Mixed model: emission inputs plus N₂O, ozone and synthetic-gas forcings (W/m²)."},
+    full:   {name:"Full model", hint:"Full model: every input is an emission, including N₂O, ozone precursors and synthetic gases."}
+  };
+
+  function updateVariantUI(){
     const hint = el("controlsHint");
-    if (hint) hint.textContent = full
-      ? "Full model: all emission inputs, including N₂O, ozone precursors and synthetic gases."
-      : "Simple model: CO₂, CH₄, aerosols and volcanoes. Minor gases are off.";
+    if (hint) hint.textContent = VARIANT_INFO[APP_VARIANT].hint;
+    const note = el("variantNote");
+    if (note){
+      const links = [
+        ["full", "index.html", "Full"],
+        ["simple", "index.html?model=simple", "Simple"],
+        ["mixed", "index.html?model=mixed", "Mixed"]
+      ].map(([v, href, label]) => v === APP_VARIANT ? `<b>${label}</b>` : `<a href="${href}">${label}</a>`).join(" · ");
+      note.innerHTML = `You are using the <b>${VARIANT_INFO[APP_VARIANT].name}</b>. Model versions: ${links}`;
+    }
   }
 
   function updateIVToggle(){
@@ -439,16 +410,12 @@
       if (card) card.style.display = active ? "" : "none";
       if (!active) continue;
 
-      // title/subtitle follow the input mode for the dual-representation cards
-      if (meta.simpleCol && card){
+      // In the mixed variant the minor-GHG cards show ERF titles/subtitles
+      if (APP_VARIANT === "mixed" && meta.mixedCol && card){
         const t = card.querySelector(".title");
         const sub = card.querySelector(".subtitle");
-        if (t){
-          if (!meta._fullTitle){ meta._fullTitle = t.textContent; meta._fullSub = sub ? sub.textContent : ""; }
-          const simple = state.inputMode === "emissions";
-          t.textContent = simple ? meta.simpleTitle : meta._fullTitle;
-          if (sub) sub.textContent = simple ? meta.simpleSub : meta._fullSub;
-        }
+        if (t && meta.mixedTitle) t.textContent = meta.mixedTitle;
+        if (sub && meta.mixedSub) sub.textContent = meta.mixedSub;
       }
 
       const col = inputVarCol(meta);
@@ -486,12 +453,9 @@
       if (block) block.style.display = active ? "" : "none";
       if (!active) continue;
 
-      if (meta.simpleCol && block){
+      if (APP_VARIANT === "mixed" && meta.mixedCol && block){
         const t = block.querySelector(".mini-title");
-        if (t){
-          if (!meta._fullMiniTitle) meta._fullMiniTitle = t.textContent;
-          t.textContent = state.inputMode === "emissions" ? meta.simpleTitle : meta._fullMiniTitle;
-        }
+        if (t && meta.mixedTitle) t.textContent = meta.mixedTitle;
       }
 
       plotLines(el(meta.mini), [
@@ -686,6 +650,9 @@
       if (state.forcingLines.volc){
         series.push({label:"Volcanic", x:years, y: out.map(r=>r.F_volc), color:"#444444"});
       }
+      if (state.forcingLines.alb){
+        series.push({label:"Albedo", x:years, y: out.map(r=>r.F_alb ?? 0), color:"#17becf"});
+      }
 
       if (series.length === 0){
         series.push({label:"(no components selected)", x:years, y: years.map(()=>NaN), color:"#999999"});
@@ -734,7 +701,7 @@
     renderScenarioHeader();
     updateToggleLabels();
     updateIVToggle();
-    updateInputModeToggle();
+    updateVariantUI();
     updateViewRangeUI();
 
     const isOutput = (state.mode === "output");
@@ -796,6 +763,7 @@
       el("fShowAER").checked = state.forcingLines.aer;
       el("fShowSolar").checked = state.forcingLines.solar;
       el("fShowVolc").checked = state.forcingLines.volc;
+      if (el("fShowAlb")) el("fShowAlb").checked = state.forcingLines.alb;
 
       updateOutputVisibility();
       renderMiniInputs();

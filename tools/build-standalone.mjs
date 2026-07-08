@@ -13,7 +13,19 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p) => readFileSync(join(root, p), "utf8");
 
+// Optional: --variant simple|mixed|full (default full). file:// pages cannot
+// carry query strings reliably, so the variant is baked in as a global.
+const vArg = process.argv.indexOf("--variant");
+const variant = vArg !== -1 ? process.argv[vArg + 1] : "full";
+if (!["simple", "mixed", "full"].includes(variant)) {
+  throw new Error(`unknown variant "${variant}"`);
+}
+
 let html = read("index.html");
+html = html.replace(
+  "<body>",
+  `<body>\n  <script>window.__MODEL_VARIANT = ${JSON.stringify(variant)};</script>`
+);
 
 // Inline the stylesheet
 html = html.replace(
@@ -32,6 +44,7 @@ if (/<link rel="stylesheet"|<script src=/.test(html)) {
 }
 
 mkdirSync(join(root, "dist"), { recursive: true });
-const out = join(root, "dist", "carbonator-standalone.html");
+const name = variant === "full" ? "carbonator-standalone.html" : `carbonator-standalone-${variant}.html`;
+const out = join(root, "dist", name);
 writeFileSync(out, html);
-console.log(`Wrote ${out} (${(html.length / 1024).toFixed(0)} kB)`);
+console.log(`Wrote ${out} (${(html.length / 1024).toFixed(0)} kB, variant: ${variant})`);

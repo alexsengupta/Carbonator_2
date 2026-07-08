@@ -57,42 +57,31 @@ The scripts are plain (non-module) JavaScript loaded in dependency order and
 sharing one scope — which is what lets the same code run unbundled from `file://`
 and be trivially inlined into a single file.
 
-## Simple vs full model (all inputs are emissions)
+## Three model versions
 
-The model is emission-driven end to end. The default **simple model** has four
-emission inputs, as in the original Carbonator — CO2, CH4, human aerosols
-(Tg SO2/yr; forcing proportional to the emission rate), volcanic aerosol
-injection (stratospheric optical depth per year; ~1.2-yr lifetime, -20 W/m2
-per unit AOD) — plus solar forcing. The minor gases are excluded, so idealised
-experiments are exactly zero-forcing outside what the user sets, and a
-simple-mode historical run deliberately undershoots observations (a teaching
-opportunity).
+The app ships as three separate versions — there is no in-app mode switching:
 
-The **Full model (all gases)** toggle adds three more emission inputs
-(js/model.js, MINOR_GHG):
+| Version | URL | Inputs |
+|---|---|---|
+| **Full** (production) | `index.html` | everything as emissions: CO2, CH4, aerosols (Tg SO2/yr), volcanic injection (AOD/yr), N2O (Tg/yr), ozone precursors (~Tg/yr), synthetic gases (kt CFC-12-eq/yr), plus solar forcing and albedo |
+| **Simple** | `simple.html` or `index.html?model=simple` | CO2, CH4, aerosols, volcanoes, solar, albedo only; minor gases excluded; default sensitivity 3.7 degC (vs 3.0) |
+| **Mixed** | `mixed.html` or `index.html?model=mixed` | as Simple, plus the minor gases prescribed as radiative forcing (W/m2) time series |
 
-- **N2O** — one-box, 120-yr lifetime, square-root forcing (Tg N2O/yr).
-- **Ozone precursors** — tropospheric ozone forms from short-lived pollution
-  (NOx, CO, VOCs), so forcing is proportional to a precursor emission index
-  (~Tg/yr; 0.004 W/m2 per unit).
-- **Synthetic gases** — the CFC/HFC basket as ONE equivalent gas: linear
-  forcing per ppt CFC-12-equivalent, one-box with a 100-yr effective lifetime
-  (kt CFC-12-eq/yr). The derived emission history peaks in 1988 and falls —
-  the Montreal Protocol, visible in the inputs.
+The home page shows which version is running with links to the others.
+`tools/build-standalone.mjs --variant simple|mixed|full` bakes a version into a
+single-file build.
 
-All pseudo-emission series are derived once per scenario by exact annual
-inversion of the RCMIP ERF series (addDerivedEmissionCols); the full model
-reproduces the ERF-driven forcings to ~3 decimal places, so its temperatures
-match observations as before.
-
-The two modes use different default climate sensitivities, stated in the
-explainer: 3.0 degC per CO2 doubling in the full model (IPCC best estimate)
-and 3.7 degC in the simple model (within the IPCC likely range of 2.5-4.0
-degC), partly compensating for the excluded gases so end-of-century warming
-stays close to the full model. Historical warming still undershoots
-observations in simple mode — ocean inertia means sensitivity cannot make up
-for missing 20th-century forcing — a deliberate teaching point. A custom S set
-in the parameter editor is preserved across mode switches.
+Model internals: the minor-GHG sub-models (N2O one-box, 120-yr lifetime;
+ozone forcing proportional to precursor emissions; synthetic gases as one
+CFC-12-equivalent box, 100-yr lifetime — its derived emission history peaks in
+1988, the Montreal Protocol) live in js/model.js (MINOR_GHG). Pseudo-emission
+series are derived once per scenario by exact annual inversion of the RCMIP
+ERF series; the full model reproduces the ERF-driven forcings to ~3 decimal
+places. An **albedo input** (planetary reflectivity, baseline 0.31; forcing
+-S0/4 x Δalbedo) is available in every version — the White Roofs experiment
+uses it. The simple model's historical undershoot vs observations is a
+deliberate teaching point (ocean inertia means its higher sensitivity cannot
+compensate for the missing 20th-century forcing).
 
 ## Saving and loading scenarios
 
@@ -158,6 +147,11 @@ pip install numpy xarray scipy pandas gcsfs zarr cftime
 python3 tools/make_patterns_cmip6.py --selftest     # validate pipeline, no network
 python3 tools/make_patterns_cmip6.py                # ~12 models, ssp585, -> data/patterns_cmip6_1deg.js
 ```
+
+The maps use white-centred colour scales (white = the global average value,
+marked on the colour bar) with coastlines derived from the ocean mask of the
+sea-level field. Variables: temperature amplification (degC/degC), precipitation
+change (%/degC) and regional sea-level departure (cm/degC, from CMIP6 zos).
 
 Method: per model, epoch difference (2071-2100 under the SSP minus 1850-1900
 historical) divided by that model's global-mean warming; bilinear regrid to 1
