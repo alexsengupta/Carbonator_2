@@ -83,6 +83,28 @@ uses it. The simple model's historical undershoot vs observations is a
 deliberate teaching point (ocean inertia means its higher sensitivity cannot
 compensate for the missing 20th-century forcing).
 
+## Natural variability
+
+A "Natural Variability" input card (all versions) adds internal variability at
+the process level, with two independently toggleable sources whose seeded
+random series are shown on the card exactly as the model will use them:
+
+- **Ocean mixing (ENSO-like)** — an energy-conserving stochastic heat exchange
+  between the surface and deep ocean (AR(2) damped oscillator, ~4-yr period).
+  Heat is rearranged, not created, so temperature wiggles but recovers.
+- **Clouds & sun** — red-noise fluctuations in absorbed sunlight, applied as a
+  perturbation to the albedo input (visible there as small wiggles). This
+  genuinely adds/removes energy, giving slower decadal variability.
+
+Default amplitudes (mixing 1.0 W/m2, cloud 0.5 W/m2 — consistent with CERES
+TOA variability) are calibrated so that with both sources on, the model's
+year-to-year temperature variability matches detrended HadCRUT5 (~0.08 K).
+A one-time explainer appears when first toggled on; Randomise draws a new
+realisation; amplitudes/periods/seed are editable in the Advanced parameter
+editor. Series generation lives in js/model.js (generateIVSeries); the mixing
+series reaches the model through a q_iv_Wm2 working column, the cloud series
+through the albedo column.
+
 ## Saving and loading scenarios
 
 Every scenario view has **Save inputs CSV** (the input time series, including any

@@ -99,19 +99,6 @@
             <div class="smallpanel">
               <div class="label">Controls</div>
               <div class="hint" id="controlsHint">Toggle inputs on/off, then run the model.</div>
-              <div class="toggle-row" style="margin-top:10px;" title="Adds ENSO-like year-to-year variability using an energy-conserving stochastic heat exchange (tunable in Advanced parameters).">
-                <label class="switch">
-                  <input type="checkbox" id="togIV" />
-                  <span class="slider"></span>
-                </label>
-                <div>Internal variability</div>
-                <div class="state" id="stateIV">OFF</div>
-              </div>
-              <div class="toggle-row advOnly" style="margin-top:6px;">
-                <button class="btn" id="btnIVRandom" type="button" style="padding:4px 8px; font-size:11px;" title="Generate a new random realisation (new seed)">Randomise</button>
-                <div style="font-size:11px; color:#666;">Seed: <span id="ivSeedVal">1</span></div>
-              </div>
-
               <div class="panel-actions">
                 <button class="btn advOnly" id="btnParams" title="Edit model parameters (energy balance, carbon cycle, methane, sea level, internal variability).">Edit parameters</button>
                 <button class="btn" id="btnViewData" title="View input data table for this scenario (including any edits).">Input table</button>
@@ -354,6 +341,39 @@
               </div>
               <div class="plot-right">
                 <canvas id="plotInALB" data-height="240"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Natural variability -->
+          <div class="plot-card">
+            <div class="plot-row">
+              <div class="plot-left">
+                <div class="title">Natural Variability</div>
+                <div class="subtitle">Random year-to-year variability, like the real climate has. Two sources: the ocean stirring heat between its surface and depths (ENSO-like), and random changes in cloudiness and sunshine (also visible as wiggles on the Albedo input).</div>
+                <div class="toggle-row" title="ENSO-like heat exchange between the surface and deep ocean. Moves heat around without adding any — temperature wiggles but recovers.">
+                  <label class="switch">
+                    <input type="checkbox" id="togIVMix" />
+                    <span class="slider"></span>
+                  </label>
+                  <div>Ocean mixing</div>
+                  <div class="state" id="stateIVMix">OFF</div>
+                </div>
+                <div class="toggle-row" style="margin-top:6px;" title="Random cloud/solar fluctuations in absorbed sunlight. Genuinely adds or removes energy, so effects can linger.">
+                  <label class="switch">
+                    <input type="checkbox" id="togIVCloud" />
+                    <span class="slider"></span>
+                  </label>
+                  <div>Clouds &amp; sun</div>
+                  <div class="state" id="stateIVCloud">OFF</div>
+                </div>
+                <div class="toggle-row" style="margin-top:8px;">
+                  <button class="btn" id="btnIVRandom" type="button" style="padding:4px 8px; font-size:11px;" title="Generate a different random sequence (new seed)">Randomise</button>
+                  <div style="font-size:11px; color:#666;">Seed: <span id="ivSeedVal">1</span></div>
+                </div>
+              </div>
+              <div class="plot-right">
+                <canvas id="plotInIV" data-height="240"></canvas>
               </div>
             </div>
           </div>

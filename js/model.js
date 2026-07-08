@@ -36,12 +36,65 @@
   // generates a heat flux q(t) (W/m²). q(t) is added to the upper box and subtracted
   // from the deep box, so it redistributes heat without changing total energy.
   const IV_DEFAULT = {
-    enabled: false,
-    amp: 0.7,     // W/m² (typical: 0–2)
-    period: 4.0,  // years (typical ENSO-like: 2–7)
-    tau: 4.0,     // years (envelope damping time; higher = more persistent)
+    mixEnabled: false,   // ocean mixing (ENSO-like): energy-conserving heat exchange
+    cloudEnabled: false, // clouds & sun: random shortwave (albedo) fluctuations
+    // Amplitudes calibrated so that with both sources on, the model's
+    // year-to-year temperature variability matches detrended HadCRUT5 (~0.08 K).
+    amp: 1.0,            // W/m², mixing heat-exchange amplitude (typical: 0–2)
+    period: 4.0,         // years, mixing oscillation period (ENSO-like: 2–7)
+    tau: 4.0,            // years, mixing envelope damping (higher = more persistent)
+    cloudAmp: 0.5,       // W/m², radiative (cloud/sun) noise amplitude (CERES: ~0.5)
+    cloudTau: 1.0,       // years, radiative noise decorrelation time
     seed: 1
   };
+
+  // Generate the two annual variability series for a given year grid.
+  // Deterministic for a given seed, so the input charts show exactly the
+  // realisation the model will use.
+  //   q      : heat exchanged from deep to surface ocean (W/m²) — ENSO-like
+  //            AR(2) damped oscillator; energy-conserving in the EBM.
+  //   fCloud : radiative noise (W/m²) from random cloud/solar fluctuations —
+  //            AR(1) red noise; genuinely adds/removes energy.
+  //   dAlb   : the albedo perturbation equivalent to fCloud (applied to the
+  //            albedo input so the cloud noise is visible there).
+  function generateIVSeries(years, ivIn){
+    const iv = {...IV_DEFAULT, ...(ivIn || {})};
+    const n = years.length;
+    const q = new Array(n).fill(0);
+    const fCloud = new Array(n).fill(0);
+    const dAlb = new Array(n).fill(0);
+
+    if (iv.mixEnabled && iv.amp > 0){
+      const r = Math.exp(-1 / Math.max(iv.tau, 1e-6));
+      const theta = 2*Math.PI / Math.max(iv.period, 1e-6);
+      const a1 = 2*r*Math.cos(theta);
+      const a2 = -r*r;
+      const gamma1 = a1 / (1 - a2);
+      let sigmaE2 = 1 - (a1*a1*(1+a2)/(1 - a2)) - (a2*a2);
+      if (!Number.isFinite(sigmaE2) || sigmaE2 <= 0) sigmaE2 = 1e-8;
+      const sigmaE = Math.sqrt(sigmaE2);
+      const randn = makeRandn(mulberry32((iv.seed|0) || 1));
+      let x2 = randn();
+      let x1 = gamma1*x2 + Math.sqrt(Math.max(1 - gamma1*gamma1, 0)) * randn();
+      for (let i=0; i<n; i++){
+        const x = a1*x1 + a2*x2 + sigmaE*randn();
+        x2 = x1; x1 = x;
+        q[i] = iv.amp * x;
+      }
+    }
+
+    if (iv.cloudEnabled && iv.cloudAmp > 0){
+      const phi = Math.exp(-1 / Math.max(iv.cloudTau, 1e-6));
+      const randn = makeRandn(mulberry32(((iv.seed|0) || 1) + 7919));
+      let x = randn();
+      for (let i=0; i<n; i++){
+        x = phi*x + Math.sqrt(1 - phi*phi)*randn();
+        fCloud[i] = iv.cloudAmp * x;
+        dAlb[i] = -fCloud[i] / SIMPLE_INPUTS.S0q; // +forcing = darker planet
+      }
+    }
+    return {q, fCloud, dAlb};
+  }
 
   // --- Simple (emissions) input mode -----------------------------------------
   // In the default "emissions" mode, aerosol and volcanic inputs are expressed as
@@ -259,33 +312,13 @@
 
     const dt = 1/12; // monthly
 
-    // Internal variability: damped stochastic oscillator producing q(t) (W/m²),
-    // exchanged between upper and deep ocean boxes (energy-conserving).
-    const iv = {...IV_DEFAULT, ...(params.iv||{})};
-    const ivOn = !!iv.enabled && (iv.amp > 0);
-
-    let iv_x1 = 0, iv_x2 = 0;
-    let iv_a1 = 0, iv_a2 = 0, iv_sigmaE = 0;
-    let iv_randn = null;
-
-    if (ivOn){
-      const r = Math.exp(-dt / Math.max(iv.tau, 1e-6));
-      const theta = 2*Math.PI*dt / Math.max(iv.period, 1e-6);
-      iv_a1 = 2*r*Math.cos(theta);
-      iv_a2 = -r*r;
-
-      const gamma1 = iv_a1 / (1 - iv_a2);
-      let sigmaE2 = 1 - (iv_a1*iv_a1*(1+iv_a2)/(1 - iv_a2)) - (iv_a2*iv_a2);
-      if (!Number.isFinite(sigmaE2) || sigmaE2 <= 0) sigmaE2 = 1e-8;
-      iv_sigmaE = Math.sqrt(sigmaE2);
-
-      const rng = mulberry32((iv.seed|0) || 1);
-      iv_randn = makeRandn(rng);
-
-      // Draw initial conditions from the stationary distribution (unit variance)
-      iv_x2 = iv_randn();
-      iv_x1 = gamma1*iv_x2 + Math.sqrt(Math.max(1 - gamma1*gamma1, 0)) * iv_randn();
-    }
+    // Internal variability: the ocean-mixing heat-exchange series q(t)
+    // (W/m², deep->surface, energy-conserving) is generated at the input
+    // stage (generateIVSeries via buildWorkingRows) and carried in the
+    // q_iv_Wm2 column. Cloud/solar radiative noise arrives through the
+    // albedo column, so it needs nothing extra here.
+    const hasQ = Number.isFinite(scenarioRows[0] && scenarioRows[0].q_iv_Wm2);
+    const sQ = hasQ ? buildSeries(scenarioRows, "q_iv_Wm2") : null;
 
     const out = [];
 
@@ -358,15 +391,8 @@
 
         const F_total = F_co2 + F_ch4 + F_n2o + F_other + F_aer + F_o3 + F_solar + F_volc + F_alb;
 
-        // Internal variability heat exchange q(t)
-        let q = 0;
-        if (ivOn){
-          const eps = iv_sigmaE * iv_randn();
-          const x = iv_a1*iv_x1 + iv_a2*iv_x2 + eps;
-          iv_x2 = iv_x1;
-          iv_x1 = x;
-          q = iv.amp * x;
-        }
+        // Internal variability heat exchange q(t) (from the input stage)
+        const q = sQ ? sQ.interp(t) : 0;
         qSum += q;
         qSum2 += q*q;
 

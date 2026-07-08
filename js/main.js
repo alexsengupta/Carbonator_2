@@ -159,28 +159,34 @@
   bindToggle("togSOLAR","SOLAR");
   bindToggle("togALB","ALB");
 
-  // internal variability toggle (energy-conserving; default settings unless edited in Advanced)
-  el("togIV").addEventListener("change", ()=>{
-    if (!state.params.iv) state.params.iv = {...IV_DEFAULT};
-    state.params.iv.enabled = el("togIV").checked;
-    updateIVToggle();
-    updateEditBadges();
-  });
+  // Natural variability: two sources, toggled on the input card. A one-time
+  // explainer appears the first time either source is switched on.
+  function bindIVToggle(id, key){
+    if (!el(id)) return;
+    el(id).addEventListener("change", ()=>{
+      if (!state.params.iv) state.params.iv = {...IV_DEFAULT};
+      state.params.iv[key] = el(id).checked;
+      if (el(id).checked && !state.ivNoticeShown){
+        state.ivNoticeShown = true;
+        openIVNotice();
+      }
+      updateIVToggle();
+      updateEditBadges();
+      renderInputCharts();
+    });
+  }
+  bindIVToggle("togIVMix", "mixEnabled");
+  bindIVToggle("togIVCloud", "cloudEnabled");
 
-  // New random realisation (Advanced): choose a new seed and (if already run) re-run.
+  // New random realisation: choose a new seed and redraw the input charts.
   if (el("btnIVRandom")){
     el("btnIVRandom").addEventListener("click", ()=>{
       if (!state.params.iv) state.params.iv = {...IV_DEFAULT};
-      if (!state.params.iv.enabled) return;
+      if (!state.params.iv.mixEnabled && !state.params.iv.cloudEnabled) return;
       state.params.iv.seed = Math.floor(Math.random()*1e9) + 1;
       updateIVToggle();
       updateEditBadges();
-
-      if (state.mode === "output"){
-        const rows = buildWorkingRows();
-        state.lastOutput = runModel(rows, {...state.params, inputMode: state.inputMode});
-      }
-      renderAll();
+      renderInputCharts();
     });
   }
 

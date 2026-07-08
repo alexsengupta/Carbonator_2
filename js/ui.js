@@ -118,10 +118,13 @@
                              state.params.cl !== DEFAULTS.params.cl ||
                              state.params.gamma !== DEFAULTS.params.gamma ||
                              (state.params.iv && (
-                               state.params.iv.enabled !== IV_DEFAULT.enabled ||
+                               !!state.params.iv.mixEnabled !== IV_DEFAULT.mixEnabled ||
+                               !!state.params.iv.cloudEnabled !== IV_DEFAULT.cloudEnabled ||
                                state.params.iv.amp !== IV_DEFAULT.amp ||
                                state.params.iv.period !== IV_DEFAULT.period ||
                                state.params.iv.tau !== IV_DEFAULT.tau ||
+                               (state.params.iv.cloudAmp ?? IV_DEFAULT.cloudAmp) !== IV_DEFAULT.cloudAmp ||
+                               (state.params.iv.cloudTau ?? IV_DEFAULT.cloudTau) !== IV_DEFAULT.cloudTau ||
                                state.params.iv.seed !== IV_DEFAULT.seed
                              ))));
   }
@@ -150,6 +153,12 @@
 
   function buildWorkingRows(){
     const baseRows = getScenarioRows(state.scenario);
+    // Internal variability is generated at the input stage: the mixing series
+    // rides in its own column; the cloud/solar noise perturbs the albedo input.
+    const iv = (state.params && state.params.iv) || {};
+    const ivs = (iv.mixEnabled || iv.cloudEnabled)
+      ? generateIVSeries(baseRows.map(r => r.year), iv)
+      : null;
     return baseRows.map((r, idx) => {
       const o = {...r};
 
@@ -174,6 +183,10 @@
       if (!state.toggles.VOLC){ o.ERF_volcanic_rel1850_Wm2 = 0; o.E_volcAOD_yr = 0; }
       if (!state.toggles.SOLAR) o.ERF_solar_rel1850_Wm2 = 0;
       if (!state.toggles.ALB) o.albedo = SIMPLE_INPUTS.alb0; // reset to baseline, not zero
+
+      // variability (applied on top of edits and toggles)
+      o.q_iv_Wm2 = (ivs && iv.mixEnabled) ? ivs.q[idx] : 0;
+      if (ivs && iv.cloudEnabled) o.albedo = o.albedo + ivs.dAlb[idx];
 
       return o;
     });
@@ -322,22 +335,50 @@
   }
 
   function updateIVToggle(){
-    const cb = el("togIV");
-    if (!cb) return;
-    const enabled = !!(state.params && state.params.iv && state.params.iv.enabled);
-    cb.checked = enabled;
-    const st = el("stateIV");
-    if (st) st.textContent = enabled ? "ON" : "OFF";
-
-    const seedVal = el("ivSeedVal");
-    if (seedVal && state.params && state.params.iv){
-      seedVal.textContent = String(state.params.iv.seed ?? IV_DEFAULT.seed);
+    const iv = (state.params && state.params.iv) || {};
+    const mixCb = el("togIVMix"), cloudCb = el("togIVCloud");
+    if (mixCb){
+      mixCb.checked = !!iv.mixEnabled;
+      const st = el("stateIVMix");
+      if (st) st.textContent = iv.mixEnabled ? "ON" : "OFF";
     }
+    if (cloudCb){
+      cloudCb.checked = !!iv.cloudEnabled;
+      const st = el("stateIVCloud");
+      if (st) st.textContent = iv.cloudEnabled ? "ON" : "OFF";
+    }
+    const seedVal = el("ivSeedVal");
+    if (seedVal) seedVal.textContent = String(iv.seed ?? IV_DEFAULT.seed);
     const btn = el("btnIVRandom");
     if (btn){
-      btn.disabled = !enabled;
-      btn.style.opacity = enabled ? "1" : "0.6";
+      const on = !!(iv.mixEnabled || iv.cloudEnabled);
+      btn.disabled = !on;
+      btn.style.opacity = on ? "1" : "0.6";
     }
+  }
+
+  // One-time explainer when natural variability is first switched on
+  function openIVNotice(){
+    const body = document.createElement("div");
+    body.innerHTML = `
+      <p style="margin-top:0;">In the real world, temperatures wobble from year to year even when greenhouse
+      gases and aerosols do not change. This model can include two sources of that natural randomness:</p>
+      <ul style="padding-left:18px; font-size:13px; line-height:1.55;">
+        <li><b>Ocean mixing (ENSO-like).</b> The ocean constantly stirs heat between its warm surface and cold
+            depths. In some years (like El Niño) less cold water reaches the surface and the planet runs warm;
+            in others (La Niña) the opposite. This only <i>moves</i> heat around — it doesn't create or destroy
+            it — so the temperature wiggles but always comes back.</li>
+        <li><b>Clouds &amp; sun.</b> Random changes in cloudiness (and small flickers in the Sun) briefly change
+            how much sunlight the planet absorbs — you can see these as tiny wiggles on the Albedo input.
+            Unlike ocean mixing, this genuinely adds or removes energy, so its effects can linger for years.</li>
+      </ul>
+      <p style="font-size:13px;">The chart on this card shows the random sequence the model will use, in watts
+      per square metre. Every sequence is one possible realisation — press <b>Randomise</b> for a different one.</p>
+      <p style="font-size:12px; color:#666; margin-bottom:0;">Real thermometer records (compare with HadCRUT in
+      the temperature output) contain exactly this kind of variability — it is why observations look wiggly
+      next to a smooth model run.</p>
+    `;
+    openModal("Natural variability: what just turned on?", body);
   }
 
   function updateViewRangeUI(){
@@ -430,6 +471,30 @@
         {x: years, y: eff, label: enabled ? "used" : "disabled", color: enabled ? "#4d8bff" : "rgba(0,0,0,0.22)", width:2}
       ], {yLabel: inputVarUnits(meta), yDigits: inputVarDigits(meta), vline:2020, legend:false});
     }
+
+    renderIVCard();
+  }
+
+  // Natural-variability card: plot the two random series (W/m²) exactly as
+  // the model will use them (same seed).
+  function renderIVCard(){
+    const canvas = el("plotInIV");
+    if (!canvas) return;
+    const rows = getScenarioRows(state.scenario);
+    const yearsAll = rows.map(r=>r.year);
+    const idx = viewIndices(yearsAll);
+    const years = pickByIdx(yearsAll, idx);
+    const iv = (state.params && state.params.iv) || {};
+
+    const series = [];
+    if (iv.mixEnabled || iv.cloudEnabled){
+      const ivs = generateIVSeries(yearsAll, iv);
+      if (iv.mixEnabled) series.push({label:"Ocean mixing (heat to surface)", x:years, y:pickByIdx(ivs.q, idx), color:"#1f77b4", width:1.6});
+      if (iv.cloudEnabled) series.push({label:"Clouds & sun (extra sunlight)", x:years, y:pickByIdx(ivs.fCloud, idx), color:"#e6a23c", width:1.6});
+    } else {
+      series.push({label:"(both sources off)", x:years, y:years.map(()=>0), color:"rgba(0,0,0,0.25)", width:1.4});
+    }
+    plotLines(canvas, series, {yLabel:"W/m²", yDigits:2});
   }
 
   
@@ -705,9 +770,6 @@
     updateViewRangeUI();
 
     const isOutput = (state.mode === "output");
-
-    // Internal variability toggle is only intended to be changed before a run.
-    if (el("togIV")) el("togIV").disabled = isOutput;
 
     // Header buttons
     el("btnRun").style.display = isOutput ? "none" : "";

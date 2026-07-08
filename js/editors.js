@@ -381,7 +381,11 @@
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
           <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700;">
             <input type="checkbox" id="ivEnable" />
-            Enable variability
+            Ocean mixing (ENSO-like)
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700;">
+            <input type="checkbox" id="ivCloudEnable" />
+            Clouds &amp; sun (radiative)
           </label>
           <button class="btn" type="button" id="ivNewSeed" title="Choose a new random seed for the variability realisation">New seed</button>
           <span style="font-size:11px; color:#666;">Energy-conserving heat exchange between upper &amp; deep ocean (damped oscillator; ENSO-like).</span>
@@ -584,8 +588,10 @@
 
     // Internal variability inputs (energy-conserving heat exchange q(t))
     const ivEnable = wrap.querySelector("#ivEnable");
+    const ivCloudEnable = wrap.querySelector("#ivCloudEnable");
     const ivNewSeed = wrap.querySelector("#ivNewSeed");
-    if (ivEnable) ivEnable.checked = !!(tmp.iv && tmp.iv.enabled);
+    if (ivEnable) ivEnable.checked = !!(tmp.iv && tmp.iv.mixEnabled);
+    if (ivCloudEnable) ivCloudEnable.checked = !!(tmp.iv && tmp.iv.cloudEnabled);
 
     function ivValue(k){
       const base = IV_DEFAULT[k];
@@ -597,9 +603,11 @@
       if (!gridIV) return;
       gridIV.innerHTML = "";
       const fields = [
-        {key:"amp", label:"Heat-exchange amplitude σq (W/m²)", step:"0.01", help:"Standard deviation of the stochastic heat flux q(t) exchanged between upper and deep ocean.", plausible:"Typical: 0–2"},
-        {key:"period", label:"Oscillation period (years)", step:"0.1", help:"Dominant period of the damped oscillator (ENSO-like variability is ~2–7 years).", plausible:"Typical: 2–7"},
-        {key:"tau", label:"Damping time (years)", step:"0.1", help:"Envelope damping timescale (higher = more persistent oscillations).", plausible:"Typical: 2–10"},
+        {key:"amp", label:"Mixing amplitude σq (W/m²)", step:"0.01", help:"Standard deviation of the stochastic heat flux q(t) exchanged between upper and deep ocean (ocean mixing / ENSO-like source).", plausible:"Typical: 0–2"},
+        {key:"period", label:"Mixing oscillation period (years)", step:"0.1", help:"Dominant period of the damped oscillator (ENSO-like variability is ~2–7 years).", plausible:"Typical: 2–7"},
+        {key:"tau", label:"Mixing damping time (years)", step:"0.1", help:"Envelope damping timescale (higher = more persistent oscillations).", plausible:"Typical: 2–10"},
+        {key:"cloudAmp", label:"Cloud/solar amplitude (W/m²)", step:"0.01", help:"Standard deviation of the radiative noise from random cloudiness and solar fluctuations. Satellite (CERES) interannual variability is ~0.4–0.6 W/m².", plausible:"Typical: 0–1"},
+        {key:"cloudTau", label:"Cloud/solar decorrelation (years)", step:"0.1", help:"Persistence of the radiative noise (red-noise decorrelation time).", plausible:"Typical: 0.5–3"},
         {key:"seed", label:"Random seed", step:"1", help:"Seed for reproducible runs. Change to generate a different variability realisation.", plausible:"Integer"},
       ];
       for (const f of fields){
@@ -620,7 +628,7 @@
     }
 
     function setIVEnabledUI(){
-      const on = !!(ivEnable && ivEnable.checked);
+      const on = !!((ivEnable && ivEnable.checked) || (ivCloudEnable && ivCloudEnable.checked));
       if (!gridIV) return;
       gridIV.querySelectorAll("input[data-iv]").forEach(inp=>{
         inp.disabled = !on;
@@ -633,7 +641,13 @@
 
     if (ivEnable){
       ivEnable.addEventListener("change", ()=>{
-        tmp.iv = {...(tmp.iv||IV_DEFAULT), enabled: ivEnable.checked};
+        tmp.iv = {...(tmp.iv||IV_DEFAULT), mixEnabled: ivEnable.checked};
+        setIVEnabledUI();
+      });
+    }
+    if (ivCloudEnable){
+      ivCloudEnable.addEventListener("change", ()=>{
+        tmp.iv = {...(tmp.iv||IV_DEFAULT), cloudEnabled: ivCloudEnable.checked};
         setIVEnabledUI();
       });
     }
@@ -683,10 +697,13 @@
 
       // internal variability
       const newIV = {
-        enabled: !!(wrap.querySelector("#ivEnable") && wrap.querySelector("#ivEnable").checked),
+        mixEnabled: !!(wrap.querySelector("#ivEnable") && wrap.querySelector("#ivEnable").checked),
+        cloudEnabled: !!(wrap.querySelector("#ivCloudEnable") && wrap.querySelector("#ivCloudEnable").checked),
         amp: Number(wrap.querySelector('input[data-iv="amp"]')?.value ?? IV_DEFAULT.amp),
         period: Number(wrap.querySelector('input[data-iv="period"]')?.value ?? IV_DEFAULT.period),
         tau: Number(wrap.querySelector('input[data-iv="tau"]')?.value ?? IV_DEFAULT.tau),
+        cloudAmp: Number(wrap.querySelector('input[data-iv="cloudAmp"]')?.value ?? IV_DEFAULT.cloudAmp),
+        cloudTau: Number(wrap.querySelector('input[data-iv="cloudTau"]')?.value ?? IV_DEFAULT.cloudTau),
         seed: Math.floor(Number(wrap.querySelector('input[data-iv="seed"]')?.value ?? IV_DEFAULT.seed)) || IV_DEFAULT.seed
       };
       tmp.iv = newIV;
