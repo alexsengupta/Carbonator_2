@@ -473,6 +473,7 @@
 
   // Boot
   renderSidebar();
+  initInputInfoButtons();
   renderHome();
   state.mode = "home";
   renderAll();

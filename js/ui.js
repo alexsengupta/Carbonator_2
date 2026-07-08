@@ -357,6 +357,172 @@
     }
   }
 
+  // ------------------------------------------------------------------
+  // Per-input information: sources, sinks, lifetime, warming potential.
+  // Written for a high-school audience; numbers follow IPCC AR6.
+  // ------------------------------------------------------------------
+  const INPUT_INFO = {
+    CO2: {
+      title: "Carbon dioxide (CO₂)",
+      html: `
+        <p style="margin-top:0;"><b>Where it comes from:</b> mostly burning fossil fuels — coal, oil and gas — for
+        electricity, transport and industry (about 90% of our emissions), plus cutting down forests. Nature also
+        exchanges huge amounts of CO₂ with the air every year (plants, soils, the ocean), but those flows were in
+        balance before we started adding extra.</p>
+        <p><b>Where it goes:</b> roughly a quarter of what we emit dissolves into the ocean (making it more acidic —
+        watch the pH output) and about a quarter to a third is taken up by plants. The rest stays in the air.</p>
+        <p><b>How long it lasts:</b> there is no single lifetime — about half is absorbed within a few decades, but the
+        remainder lingers for <b>centuries to thousands of years</b>. That is why CO₂ dominates long-term warming, and
+        why the CO₂ Pulse experiment takes so long to recover.</p>
+        <p style="margin-bottom:0;"><b>Warming potential:</b> CO₂ is the yardstick all other gases are measured
+        against (its "global warming potential" is defined as 1). It is not the strongest greenhouse gas per
+        kilogram — it matters because of the sheer quantity we emit: about 40 billion tonnes per year.</p>`
+    },
+    CH4: {
+      title: "Methane (CH₄)",
+      html: `
+        <p style="margin-top:0;"><b>Where it comes from:</b> livestock digestion (cow burps, not farts!), rice paddies,
+        landfills, and leaks from coal mines and gas pipelines. Natural wetlands are a big natural source.</p>
+        <p><b>Where it goes:</b> destroyed in the atmosphere by reactive molecules called OH radicals — the
+        atmosphere's "detergent" — which oxidise it back to CO₂ and water.</p>
+        <p><b>How long it lasts:</b> about <b>12 years</b> — short for a greenhouse gas. Stop emitting it and
+        concentrations fall within decades (try the CH₄ Pulse experiment).</p>
+        <p style="margin-bottom:0;"><b>Warming potential:</b> kilogram for kilogram, methane causes about
+        <b>30 times</b> more warming than CO₂ over a century — and over 80 times more over 20 years, because its
+        effect is intense but brief. That makes cutting methane one of the fastest ways to slow near-term warming.</p>`
+    },
+    AER: {
+      title: "Human aerosols (SO₂ and other particles)",
+      html: `
+        <p style="margin-top:0;"><b>Where they come from:</b> tiny particles and droplets made mostly from sulphur
+        dioxide (SO₂) released by burning coal and ship fuel, plus smoke from industry and fires.</p>
+        <p><b>What they do:</b> unlike greenhouse gases, aerosols <b>cool</b> the planet — they reflect sunlight back
+        to space and make clouds brighter and longer-lasting. They currently hide roughly half a degree of the
+        warming our greenhouse gases would otherwise cause.</p>
+        <p><b>How long they last:</b> only <b>days to weeks</b> — rain washes them out. That is why their cooling
+        tracks the emission rate: stop emitting and the cooling vanishes almost immediately (this "unmasking" is why
+        the Eliminate All Emissions experiment warms briefly at first).</p>
+        <p style="margin-bottom:0;"><b>The dilemma:</b> these same particles are air pollution that damages human
+        health, so we clean them up for good reason — but the cleanup removes their accidental cooling.</p>`
+    },
+    O3: {
+      title: "Ozone-forming pollution (precursors)",
+      html: `
+        <p style="margin-top:0;"><b>What it is:</b> ozone near the ground is not emitted directly. It is cooked up by
+        sunlight from "precursor" pollution — nitrogen oxides (NOx) from vehicle exhausts and power stations, carbon
+        monoxide, and evaporated fuels and solvents.</p>
+        <p><b>What it does:</b> this low-level ozone is a greenhouse gas <i>and</i> a harmful pollutant — it damages
+        lungs and crops. (It is a different story from the protective ozone layer high in the stratosphere.)</p>
+        <p><b>How long it lasts:</b> <b>days to weeks</b>, so its warming follows the precursor emission rate, like
+        aerosols in reverse.</p>
+        <p style="margin-bottom:0;"><b>Warming contribution:</b> about +0.3 W/m² of forcing today — the third-largest
+        human warming influence after CO₂ and methane.</p>`
+    },
+    N2O: {
+      title: "Nitrous oxide (N₂O)",
+      html: `
+        <p style="margin-top:0;"><b>Where it comes from:</b> mostly farming — nitrogen fertilisers and manure give
+        soil microbes extra nitrogen to convert into N₂O. Smaller amounts come from industry and burning. Natural
+        soils and the ocean produce it too.</p>
+        <p><b>Where it goes:</b> it is so stable that almost nothing in the lower atmosphere touches it — it is
+        finally broken apart by intense ultraviolet sunlight high in the stratosphere.</p>
+        <p><b>How long it lasts:</b> about <b>110–120 years</b> — between methane (12) and CO₂ (centuries).</p>
+        <p style="margin-bottom:0;"><b>Warming potential:</b> kilogram for kilogram, about <b>270 times</b> CO₂ over a
+        century. Bonus villain points: it is now also the biggest remaining threat to the ozone layer.</p>`
+    },
+    OTHER: {
+      title: "Synthetic gases (CFCs, HFCs and friends)",
+      html: `
+        <p style="margin-top:0;"><b>Where they come from:</b> entirely human-made — refrigerants in fridges and air
+        conditioners, foam-blowing agents, solvents and old aerosol-spray propellants. They do not exist in nature.</p>
+        <p><b>Where they go:</b> the older CFCs are so inert they survive until ultraviolet light destroys them in the
+        stratosphere (which is exactly where the released chlorine attacks the ozone layer). Their modern HFC
+        replacements are removed lower down within a decade or two.</p>
+        <p><b>How long they last:</b> from a few years (some HFCs) to <b>over a century</b> (CFC-12: ~100 years). This
+        model treats the whole basket as one equivalent gas with a ~100-year lifetime.</p>
+        <p style="margin-bottom:0;"><b>Warming potential:</b> enormous — CFC-12 warms about <b>10,000 times</b> more
+        than CO₂ per kilogram. Look at this input's history: emissions peak around 1990 and collapse. That is the
+        <b>Montreal Protocol</b> (1987), the most successful environmental treaty ever — signed to save the ozone
+        layer, it also avoided a large amount of warming.</p>`
+    },
+    VOLC: {
+      title: "Volcanic aerosols",
+      html: `
+        <p style="margin-top:0;"><b>Where they come from:</b> big explosive eruptions blast sulphur dioxide right up
+        into the stratosphere, above the weather, where it turns into a haze of tiny sulphuric-acid droplets that
+        spreads around the globe.</p>
+        <p><b>What they do:</b> the haze reflects sunlight and <b>cools</b> the planet. Mt&nbsp;Pinatubo (1991) cooled
+        Earth by about half a degree; Tambora (1815) caused the "year without a summer".</p>
+        <p><b>How long they last:</b> because the haze sits above the rain, it takes <b>1–3 years</b> to settle out —
+        much longer than pollution aerosols near the ground, but still brief on climate timescales.</p>
+        <p style="margin-bottom:0;"><b>In this model:</b> the input is the optical thickness of haze injected each
+        year; it decays away with a ~1.2-year lifetime. Try the Mega Volcano experiment — and notice how fast the
+        climate recovers compared with a CO₂ pulse.</p>`
+    },
+    SOLAR: {
+      title: "Solar forcing",
+      html: `
+        <p style="margin-top:0;"><b>What it is:</b> the Sun's brightness is not perfectly constant. It flickers by
+        about 0.1% over the 11-year sunspot cycle, and can drift a little over centuries (a long quiet spell in the
+        1600s — the Maunder Minimum — coincided with the "Little Ice Age" in Europe).</p>
+        <p><b>How big is it:</b> small — the solar cycle moves the planet's energy balance by only about
+        ±0.1 W/m², compared with roughly +3 W/m² from human greenhouse gases so far.</p>
+        <p style="margin-bottom:0;"><b>Could the Sun explain recent warming?</b> No — satellites have measured the Sun
+        directly since the 1970s, and its output has been flat or slightly declining while the planet warmed fastest.
+        Test it yourself: switch this input off and see how little changes.</p>`
+    },
+    ALB: {
+      title: "Albedo (planetary reflectivity)",
+      html: `
+        <p style="margin-top:0;"><b>What it is:</b> the fraction of incoming sunlight Earth reflects straight back to
+        space — currently about <b>0.31</b> (31%). Clouds do most of the reflecting, then ice, snow, deserts and
+        everything else down to dark ocean, which reflects almost nothing.</p>
+        <p><b>Why it matters:</b> tiny changes are powerful — brightening the planet by just 0.01 reflects about
+        3.4 W/m² of sunlight, comparable to all human greenhouse forcing. This also powers a feedback: melting
+        sea ice exposes dark ocean, which absorbs more sunlight, which melts more ice.</p>
+        <p style="margin-bottom:0;"><b>In this model:</b> the input sets the planet's reflectivity directly. The White
+        Roofs experiment brightens it to 0.34 for fifty years — an exaggerated version of "paint everything white"
+        geoengineering ideas.</p>`
+    }
+  };
+
+  function openInputInfo(key){
+    const info = INPUT_INFO[key];
+    if (!info) return;
+    const body = document.createElement("div");
+    body.innerHTML = info.html;
+    openModal(info.title, body);
+  }
+
+  // Inject an (i) button into every input card title (runs once at startup)
+  function initInputInfoButtons(){
+    for (const v of INPUT_VARS){
+      if (!INPUT_INFO[v.toggle]) continue;
+      const canvas = el(v.canvas);
+      if (!canvas) continue;
+      const title = canvas.closest(".plot-card")?.querySelector(".title");
+      if (!title || title.querySelector(".info-btn")) continue;
+      const btn = document.createElement("button");
+      btn.className = "info-btn";
+      btn.type = "button";
+      btn.textContent = "i";
+      btn.title = "Sources, sinks, lifetime and warming potential";
+      btn.addEventListener("click", ()=>openInputInfo(v.toggle));
+      title.appendChild(btn);
+    }
+    // the Natural Variability card reuses its explainer
+    const ivTitle = el("plotInIV")?.closest(".plot-card")?.querySelector(".title");
+    if (ivTitle && !ivTitle.querySelector(".info-btn")){
+      const btn = document.createElement("button");
+      btn.className = "info-btn";
+      btn.type = "button";
+      btn.textContent = "i";
+      btn.title = "What the two variability sources are";
+      btn.addEventListener("click", ()=>openIVNotice());
+      ivTitle.appendChild(btn);
+    }
+  }
+
   // One-time explainer for Basic vs Advanced mode
   function openModeNotice(){
     const body = document.createElement("div");

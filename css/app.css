@@ -1187,3 +1187,25 @@
   padding:14px;
 }
 .cmp-plot-panel canvas{ width:100%; display:block; }
+
+/* (i) information buttons on input cards */
+.info-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:17px;
+  height:17px;
+  margin-left:8px;
+  border-radius:50%;
+  border:1px solid #7d97ad;
+  background:#eef3f7;
+  color:#3f5d82;
+  font-size:11px;
+  font-style:italic;
+  font-family:Georgia, serif;
+  font-weight:700;
+  cursor:pointer;
+  vertical-align:middle;
+  line-height:1;
+}
+.info-btn:hover{ background:#3f5d82; color:#fff; }
