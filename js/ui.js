@@ -357,6 +357,25 @@
     }
   }
 
+  // One-time explainer for Basic vs Advanced mode
+  function openModeNotice(){
+    const body = document.createElement("div");
+    body.innerHTML = `
+      <p style="margin-top:0;">You have switched to <b>Advanced</b> mode. Here is what changes:</p>
+      <ul style="padding-left:18px; font-size:13px; line-height:1.55;">
+        <li><b>Basic mode</b> is for exploring: pick a scenario, switch inputs on or off, and run the model.</li>
+        <li><b>Advanced mode</b> lets you change things. Each input card gets an <b>Edit curve…</b> button —
+            drag the control points to design your own emission pathway. An <b>Edit parameters</b> button
+            appears in the Controls panel, where you can change the model itself (climate sensitivity,
+            ocean heat uptake, carbon-cycle settings, variability details).</li>
+      </ul>
+      <p style="font-size:12px; color:#666; margin-bottom:0;">Anything you change is marked with an
+      <b>EDITED</b> or <b>CUSTOM</b> badge, and <b>Reset scenario</b> always takes you back to the defaults.
+      You can switch between the two modes at any time without losing your work.</p>
+    `;
+    openModal("Advanced mode: what changes?", body);
+  }
+
   // One-time explainer when natural variability is first switched on
   function openIVNotice(){
     const body = document.createElement("div");
@@ -730,14 +749,19 @@
   function updateFloatPanel(){
     const panel = el("floatPanel");
     if (!panel) return;
+    const isCompare = (state.mode === "compare");
     const inScenario = (state.mode === "edit" || state.mode === "output");
-    panel.style.display = inScenario ? "" : "none";
-    if (!inScenario) return;
+    panel.style.display = (inScenario || isCompare) ? "" : "none";
+    if (!inScenario && !isCompare) return;
     const isOutput = (state.mode === "output");
+    const rangeBox = el("viewRangeBox");
+    if (rangeBox) rangeBox.style.display = isCompare ? "none" : "";
     const outBlock = el("fpOutputs");
     if (outBlock) outBlock.style.display = isOutput ? "" : "none";
     const addCmp = el("fpAddCompare");
     if (addCmp) addCmp.style.display = (isOutput && state.lastOutput) ? "" : "none";
+    const cmpBlock = el("fpCompare");
+    if (cmpBlock) cmpBlock.style.display = isCompare ? "" : "none";
   }
 
   function renderAll(){

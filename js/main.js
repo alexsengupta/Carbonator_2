@@ -244,7 +244,10 @@
   }
   if (el("locLat")) el("locLat").addEventListener("change", ()=>{ setLocalFromInputs(); if (state.mode==="output" && state.outputPanels.local) renderOutputs(); else renderPatternMap(); });
   if (el("locLon")) el("locLon").addEventListener("change", ()=>{ setLocalFromInputs(); if (state.mode==="output" && state.outputPanels.local) renderOutputs(); else renderPatternMap(); });
-  if (el("mapVar")) el("mapVar").addEventListener("change", ()=>{ state.local.mapVar = el("mapVar").value; if (state.mode==="output" && state.outputPanels.local) { renderPatternMap(); } });
+  if (el("mapVar")) el("mapVar").addEventListener("change", ()=>{
+    state.local.mapVar = el("mapVar").value;
+    if (state.mode==="output" && state.outputPanels.local){ renderOutputs(); }
+  });
 
   if (el("mapCanvas")) el("mapCanvas").addEventListener("click", (ev)=>{
     if (!PATTERN) return;
@@ -324,6 +327,10 @@
   });
   el("modeAdvanced").addEventListener("click", ()=>{
     state.uiMode = "advanced";
+    if (!state.modeNoticeShown){
+      state.modeNoticeShown = true;
+      openModeNotice();
+    }
     renderAll();
   });
 
@@ -340,6 +347,13 @@
 
   // Run / reset
   el("btnRun").addEventListener("click", () => {
+    // Natural variability: draw a fresh realisation on every run (the input
+    // chart shows the sequence that was actually used when you return to edit)
+    const iv = state.params.iv;
+    if (iv && (iv.mixEnabled || iv.cloudEnabled)){
+      iv.seed = Math.floor(Math.random()*1e9) + 1;
+      updateIVToggle();
+    }
     const rows = buildWorkingRows();
     state.lastOutput = runModel(rows, {...state.params, inputMode: state.inputMode});
     state.mode = "output";

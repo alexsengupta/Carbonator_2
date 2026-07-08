@@ -312,36 +312,43 @@
     const lat = state.local.lat ?? 0;
     const lon = state.local.lon ?? 0;
     const pat = getPatternAt(lat, lon);
+    const mapVar = state.local.mapVar || "tas";
 
-    const locTas = globalTemp.map(v=>v*pat.tasAmp);
-    const locPr  = globalTemp.map(v=>v*pat.prPctPerC);
+    // Show ONE chart: the variable currently selected for the map.
+    const boxes = {
+      tas: el("plotLocalTas") ? el("plotLocalTas").closest(".chartBox") : null,
+      pr:  el("plotLocalPr") ? el("plotLocalPr").closest(".chartBox") : null,
+      slr: el("plotLocalSlr") ? el("plotLocalSlr").closest(".chartBox") : null
+    };
+    for (const k of Object.keys(boxes)){
+      if (boxes[k]) boxes[k].style.display = (k === mapVar) ? "" : "none";
+    }
 
-    plotLines(el("plotLocalTas"), [
-      {label:`Local tas (lat ${lat.toFixed(1)}, lon ${lon.toFixed(1)})`, x:years, y:locTas, color:"#1f77b4", width:2.4},
-      {label:`Global (model)`, x:years, y:globalTemp, color:"rgba(0,0,0,0.25)", width:1.4},
-    ], {yLabel:"Local temperature anomaly (°C)", yDigits:2});
+    const at = `(lat ${lat.toFixed(1)}, lon ${lon.toFixed(1)})`;
 
-    plotLines(el("plotLocalPr"), [
-      {label:`Local pr change (lat ${lat.toFixed(1)}, lon ${lon.toFixed(1)})`, x:years, y:locPr, color:"#2ca02c", width:2.4},
-    ], {yLabel:"Precipitation change (% relative)", yDigits:1});
-
-    // Local sea level: global-mean rise from the model + regional departure
-    // scaled by warming. Only shown for ocean locations with slr data.
-    const slrBox = el("plotLocalSlr") ? el("plotLocalSlr").closest(".chartBox") : null;
-    if (slrBox){
-      const show = !!(globalSL && pat.slrCmPerC !== null);
-      slrBox.style.display = show ? "" : "none";
-      if (show){
+    if (mapVar === "tas"){
+      const locTas = globalTemp.map(v=>v*pat.tasAmp);
+      plotLines(el("plotLocalTas"), [
+        {label:`Local temperature ${at}`, x:years, y:locTas, color:"#1f77b4", width:2.4},
+        {label:`Global (model)`, x:years, y:globalTemp, color:"rgba(0,0,0,0.25)", width:1.4},
+      ], {yLabel:"Local temperature anomaly (°C)", yDigits:2});
+    } else if (mapVar === "pr"){
+      const locPr = globalTemp.map(v=>v*pat.prPctPerC);
+      plotLines(el("plotLocalPr"), [
+        {label:`Local precipitation change ${at}`, x:years, y:locPr, color:"#2ca02c", width:2.4},
+      ], {yLabel:"Precipitation change (% relative)", yDigits:1});
+    } else if (mapVar === "slr" && el("plotLocalSlr")){
+      // Local sea level: global-mean rise + regional departure scaled by warming.
+      const series = [{label:`Global mean (model)`, x:years, y:globalSL, color:"rgba(0,0,0,0.25)", width:1.4}];
+      if (globalSL && pat.slrCmPerC !== null){
         const locSL = globalSL.map((v, i) => v + (pat.slrCmPerC/100) * globalTemp[i]);
-        plotLines(el("plotLocalSlr"), [
-          {label:`Local sea level (lat ${lat.toFixed(1)}, lon ${lon.toFixed(1)})`, x:years, y:locSL, color:"#8e44ad", width:2.4},
-          {label:`Global mean (model)`, x:years, y:globalSL, color:"rgba(0,0,0,0.25)", width:1.4},
-        ], {yLabel:"Sea level rise (m rel. 1850)", yDigits:2});
+        series.unshift({label:`Local sea level ${at}`, x:years, y:locSL, color:"#8e44ad", width:2.4});
+      } else {
+        series[0].label = "Global mean (model) — click an ocean point for local sea level";
       }
+      plotLines(el("plotLocalSlr"), series, {yLabel:"Sea level rise (m rel. 1850)", yDigits:2});
     }
   }
-
-
 
   // Input variables. The minor GHGs (simpleHidden) are absent in the simple
   // variant, prescribed as ERF (mixed* fields) in the mixed variant, and

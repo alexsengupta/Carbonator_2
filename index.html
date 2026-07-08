@@ -580,11 +580,10 @@
             saved earlier with <b>Export outputs CSV</b>. Runs stay here for this browser session.
           </p>
           <div class="cta-row">
+            <button class="btn" id="btnCmpBack" title="Return to the run you were viewing." style="display:none;">← Back to my run</button>
             <button class="btn orange" id="btnCmpAddCurrent" title="Add the most recent run from this session.">Add current run</button>
             <button class="btn" id="btnCmpLoad" title="Load one or more files saved with Export outputs CSV.">Load outputs CSV…</button>
-            <label class="cmp-varpick">Variable:
-              <select id="cmpVarSelect"></select>
-            </label>
+            <span class="footnote" style="margin:0;">Choose variables in the Display controls panel (bottom right).</span>
           </div>
         </div>
 
@@ -595,9 +594,7 @@
 
         <div id="cmpPlotWrap" style="display:none;">
           <div id="cmpRunList" class="cmp-runs"></div>
-          <div class="cmp-plot-panel">
-            <canvas id="plotCompare" data-height="420"></canvas>
-          </div>
+          <div id="cmpPlots"></div>
         </div>
       </section>
     </main>
@@ -659,6 +656,11 @@
           </label>
         </div>
         <button class="btn" id="fpAddCompare" type="button" style="margin-top:8px; padding:4px 8px; font-size:11px; width:100%;" title="Add this run to the Compare view.">Add to compare</button>
+      </div>
+
+      <div id="fpCompare" style="display:none;">
+        <div style="font-weight:700; font-size:11px; margin-bottom:6px;">Compare variables</div>
+        <div class="outToggleBar" id="fpCmpVars"></div>
       </div>
     </div>
   </div>

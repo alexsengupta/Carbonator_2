@@ -8,7 +8,18 @@
   const COMPARE_RUNS = []; // {id, label, source, color, rows:[{year,...}]}
   const CMP_COLORS = ["#c0392b","#2980b9","#27ae60","#8e44ad","#e67e22","#16a085","#34495e","#c2185b"];
   let cmpRunCounter = 0;
-  let cmpSelectedVar = "T";
+
+  // Variables offered in the floating panel; multiple can be shown at once.
+  const CMP_VARS = [
+    {col:"T", label:"Surface temperature"},
+    {col:"Tl", label:"Deep ocean temperature"},
+    {col:"CO2_ppm", label:"CO₂ concentration"},
+    {col:"CH4_ppb", label:"CH₄ concentration"},
+    {col:"pH", label:"Ocean pH"},
+    {col:"F_total", label:"Total forcing"},
+    {col:"SL_total_m", label:"Sea level rise"},
+  ];
+  const cmpVarsOn = new Set(["T"]);
 
   function cmpUniqueLabel(base){
     let label = base, n = 2;
@@ -102,23 +113,28 @@
   }
 
   function renderCompare(){
-    const sel = el("cmpVarSelect");
-    if (!sel) return;
+    const list = el("cmpRunList");
+    if (!list) return;
 
-    // populate variable dropdown once
-    if (!sel.options.length){
-      for (const [col, disp] of OUTPUT_HEADER_MAP){
-        if (col === "year") continue;
-        const opt = document.createElement("option");
-        opt.value = col;
-        opt.textContent = disp;
-        sel.appendChild(opt);
+    // floating-panel variable checkboxes (built once)
+    const varBox = el("fpCmpVars");
+    if (varBox && !varBox.childElementCount){
+      for (const v of CMP_VARS){
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="checkbox" data-cmpvar="${v.col}" ${cmpVarsOn.has(v.col) ? "checked" : ""}/> ${v.label}`;
+        label.querySelector("input").addEventListener("change", (e)=>{
+          if (e.target.checked) cmpVarsOn.add(v.col); else cmpVarsOn.delete(v.col);
+          renderCompare();
+        });
+        varBox.appendChild(label);
       }
-      sel.value = cmpSelectedVar;
     }
 
+    // back-to-run button: only when there is a run to return to
+    const back = el("btnCmpBack");
+    if (back) back.style.display = (state.scenario && state.lastOutput) ? "" : "none";
+
     // runs list
-    const list = el("cmpRunList");
     list.innerHTML = "";
     for (const r of COMPARE_RUNS){
       const item = document.createElement("div");
@@ -141,20 +157,36 @@
     plotWrap.style.display = has ? "" : "none";
     if (!has) return;
 
-    const col = cmpSelectedVar;
-    const series = COMPARE_RUNS
-      .map(r => ({
-        label: r.label,
-        color: r.color,
-        x: r.rows.map(q => q.year),
-        y: r.rows.map(q => (col in q && Number.isFinite(q[col])) ? q[col] : NaN)
-      }))
-      .filter(s => s.y.some(v => Number.isFinite(v)));
-
-    if (!series.length){
-      series.push({label:"(variable not present in these runs)", x:[1850,2100], y:[NaN,NaN], color:"#999"});
+    // one chart per selected variable, all runs overlaid
+    const plots = el("cmpPlots");
+    plots.innerHTML = "";
+    const wanted = CMP_VARS.filter(v => cmpVarsOn.has(v.col));
+    if (!wanted.length){
+      plots.innerHTML = '<div class="footnote">Select at least one variable in the Display controls panel.</div>';
+      return;
     }
-    plotLines(el("plotCompare"), series, {yLabel: cmpVarLabel(col), yDigits: 2, legend: true});
+    for (const v of wanted){
+      const panel = document.createElement("div");
+      panel.className = "cmp-plot-panel";
+      panel.style.marginBottom = "14px";
+      const canvas = document.createElement("canvas");
+      canvas.dataset.height = wanted.length > 1 ? "260" : "420";
+      panel.appendChild(canvas);
+      plots.appendChild(panel);
+
+      const series = COMPARE_RUNS
+        .map(r => ({
+          label: r.label,
+          color: r.color,
+          x: r.rows.map(q => q.year),
+          y: r.rows.map(q => (v.col in q && Number.isFinite(q[v.col])) ? q[v.col] : NaN)
+        }))
+        .filter(sr => sr.y.some(val => Number.isFinite(val)));
+      if (!series.length){
+        series.push({label:"(variable not present in these runs)", x:[1850,2100], y:[NaN,NaN], color:"#999"});
+      }
+      plotLines(canvas, series, {yLabel: cmpVarLabel(v.col), yDigits: 2, legend: true});
+    }
   }
 
   (function initCompare(){
@@ -166,10 +198,13 @@
       renderAll();
     });
 
-    el("cmpVarSelect").addEventListener("change", ()=>{
-      cmpSelectedVar = el("cmpVarSelect").value;
-      renderCompare();
-    });
+    if (el("btnCmpBack")){
+      el("btnCmpBack").addEventListener("click", ()=>{
+        if (!state.scenario || !state.lastOutput) return;
+        state.mode = "output";
+        renderAll();
+      });
+    }
 
     el("btnCmpAddCurrent").addEventListener("click", ()=>{
       if (!addCurrentRunToCompare()){
