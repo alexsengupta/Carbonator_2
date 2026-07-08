@@ -36,13 +36,18 @@
       <p>Carbonator is based on the same laws of physics that underpin state-of-the-art climate models (in particular the conservation of energy) and for a limited number of variables will produce very similar results to those models. As such, it is a powerful tool that can be used to explore how the climate system is affected by different factors (like CO<sub>2</sub> emissions, volcanoes or changes in the power output of the sun) and how our decisions are likely to affect the climate system in the future.</p>
       <p>Based on a set of inputs (that you can modify):</p>
       <ol>
-        <li>CO<sub>2</sub> emissions (billions of tonnes of carbon released into the atmosphere each year)</li>
+        <li>CO<sub>2</sub> emissions (billions of tonnes of carbon per year)</li>
         <li>CH<sub>4</sub> (methane) emissions</li>
-        <li>Human aerosol forcing</li>
-        <li>Volcanic aerosol forcing</li>
+        <li>N<sub>2</sub>O (nitrous oxide) emissions</li>
+        <li>Ozone-forming pollution (precursor emissions)</li>
+        <li>Synthetic industrial gas emissions (CFCs, HFCs, …)</li>
+        <li>Human aerosol (SO<sub>2</sub>) emissions</li>
+        <li>Volcanic aerosol injection</li>
         <li>Solar forcing</li>
-        <li>Other greenhouse gas and ozone forcings (N<sub>2</sub>O, other well-mixed gases, ozone)</li>
+        <li>Albedo (the planet's reflectivity)</li>
       </ol>
+      <p>You can also switch on <b>natural variability</b> — random year-to-year fluctuations from ocean mixing and
+      cloudiness — to make model runs look like real thermometer records.</p>
       <p>Carbonator will calculate how various climate variables will change over time, including:</p>
       <ul>
         <li>Surface temperature</li>
@@ -76,27 +81,15 @@
         <h3>Box 1:</h3>
         <p>Change in energy in box 1 each second = Energy coming in each second &ndash; Energy going out each second (from the top and bottom of box 1)</p>
         <p>The energy in the box (E) [measured in Joules] is the heat capacity of the box (C) multiplied by the temperature of the box (T). Mathematically the change in energy (E) with time (t) is written as:</p>
-        <p><img src="assets/img/content/07.png" alt="dE/dt"></p>
+        <span class="eq"><span class="frac"><span>dE</span><span>dt</span></span> = E<sub>in</sub> − E<sub>out</sub></span>
         <p>But because E = C &times; T (and C is a constant, i.e. the heat capacity doesn&rsquo;t change):</p>
-        <p><img src="assets/img/content/08.png" alt="dE/dt = C dT/dt"></p>
-        <p>In other words, this says that the change of energy in box 1 (per second) equals the heat capacity of box 1 multiplied by the change in temperature in box 1 (each second).</p>
-        <p>Putting this all together:</p>
-        <p><img src="assets/img/content/09.png" alt="Energy balance equation"></p>
-        <p>From (3) above, we know that the E<sub>out</sub> [measured in Joules per second] is proportional to the temperature of box 1:</p>
-        <p><img src="assets/img/content/10.png" alt="E_out = aT"></p>
-        <p>(where <em>a</em> is a constant)</p>
-        <p>From (4) above, we know that the E<sub>out-mix</sub> [also measured in Joules per second] is proportional to the temperature difference between box 1 and box 2:</p>
-        <p><img src="assets/img/content/11.png" alt="E_mix = b(T - To)"></p>
-        <p>(where <em>b</em> is a constant)</p>
-        <p>So finally we have:</p>
-        <p><img src="assets/img/content/12.png" alt="Box 1 equation"></p>
+        <span class="eq"><span class="frac"><span>dE</span><span>dt</span></span> = C <span class="frac"><span>dT</span><span>dt</span></span></span>
+        <p>From (3) above, the energy lost to space is proportional to the temperature of box 1 (E<sub>out</sub> = aT), and from (4) the energy mixed downwards is proportional to the temperature difference between the boxes (E<sub>mix</sub> = b(T − T<sub>o</sub>)), where <em>a</em> and <em>b</em> are constants. Putting it all together:</p>
+        <span class="eq">C <span class="frac"><span>dT</span><span>dt</span></span> = E<sub>in</sub> − aT − b<span class="rm">(</span>T − T<sub>o</sub><span class="rm">)</span></span>
         <h3>Box 2:</h3>
-        <p>Change in energy in box 2 each second = Energy coming in each second (from the bottom of box 1)</p>
-        <p>The energy coming in to box 2 is obviously the same as the energy coming out of the bottom of box 1 (i.e. <em>b(T - T<sub>o</sub>)</em>).</p>
-        <p>So, following similar arguments to box 1 we end up with:</p>
-        <p><img src="assets/img/content/13.png" alt="Box 2 equation"></p>
-        <p>So we have ended up with two equations:</p>
-        <p><img src="assets/img/content/14.png" alt="Two box equations"></p>
+        <p>Change in energy in box 2 each second = Energy coming in each second (from the bottom of box 1). The energy coming in to box 2 is the same as the energy leaving the bottom of box 1, so following similar arguments:</p>
+        <span class="eq">C<sub>o</sub> <span class="frac"><span>dT<sub>o</sub></span><span>dt</span></span> = b<span class="rm">(</span>T − T<sub>o</sub><span class="rm">)</span></span>
+        <p>These two coupled equations are the heart of Carbonator (they follow Geoffroy et&nbsp;al. 2013).</p>
         <p>They tell us that if we know the energy entering the climate system (E<sub>in</sub>), which may change over time, we can calculate how the temperature of the surface climate (i.e. all the components in box 1) and the deep ocean (box 2) change with time.</p>
         <p>NB we also need to figure out the values for the various constants (C, C<sub>o</sub>, a, b). These can be calculated or figured out by looking at observations of the real world.</p>
         <h3>How do we get E<sub>in</sub>?</h3>
@@ -160,12 +153,15 @@
         <p>Carbon dioxide emissions (E<sup>co2</sup>) enter the atmosphere, increasing the total amount of atmospheric carbon (C<sup>at</sup>). This carbon leaves the atmosphere by dissolving into the upper ocean (C<sup>up</sup>) and being taken up by plants (N) by photosynthesis.</p>
         <p>The rate of transfer of carbon into the ocean is proportional to the difference between atmospheric and oceanic CO<sub>2</sub> concentration. This rate also depends on the acidity of the ocean, which changes depending on the amount of stored carbon. Carbon can leave the upper ocean by mixing into the deep ocean.</p>
         <p>The uptake of carbon by plants via photosynthesis depends on the atmospheric CO<sub>2</sub> concentration. The carbon in plants turns into soil carbon over long timescales as vegetation decays. Some of the carbon in the soil eventually gets back into the atmosphere via its breakdown by bacteria.</p>
-        <p>These interactions are written down mathematically below:</p>
-        <p><img src="assets/img/content/16.png" alt="Carbon cycle equations"></p>
-        <p>where C<sup>at</sup>, C<sup>up</sup>, C<sup>lo</sup>, N and S are the inventories of carbon dioxide (GtC) in the atmosphere, upper ocean and deep ocean, terrestrial vegetation and soil, respectively, P is net primary production by terrestrial plants (GtC/yr) and E is the human emissions of CO<sub>2</sub> (GtC/yr).</p>
-        <p>If we specify emissions of CO<sub>2</sub>, these equations can tell us how the atmospheric concentration of CO<sub>2</sub> changes over time. CO<sub>2</sub> is a greenhouse gas which acts to trap heat emitted from the surface of the planet. More CO<sub>2</sub> means that a greater amount of heat is trapped and the more energy is retained by the surface climate. This can be expressed mathematically as:</p>
-        <p><img src="assets/img/content/17.png" alt="CO2 forcing equation"></p>
-        <p>Where C<sub>o</sub><sup>CO2</sup> is the natural atmospheric concentration before humans started emitting CO<sub>2</sub> into the atmosphere.</p>
+        <p>These interactions are written down mathematically below (the flux of carbon into the ocean is
+        F<sub>ao</sub> = k<sub>a</sub><span style="font-style:normal;">(</span>C<sup>at</sup> − A·B·C<sup>up</sup><span style="font-style:normal;">)</span>, where B represents the ocean's carbonate chemistry):</p>
+        <span class="eq"><span class="frac"><span>dC<sup>at</sup></span><span>dt</span></span> = E − F<sub>ao</sub> + (1−ε) m N + δ S − P</span>
+        <span class="eq"><span class="frac"><span>dC<sup>up</sup></span><span>dt</span></span> = F<sub>ao</sub> − k<sub>d</sub><span class="rm">(</span>C<sup>up</sup> − C<sup>lo</sup>/d<span class="rm">)</span> &emsp; <span class="frac"><span>dC<sup>lo</sup></span><span>dt</span></span> = k<sub>d</sub><span class="rm">(</span>C<sup>up</sup> − C<sup>lo</sup>/d<span class="rm">)</span></span>
+        <span class="eq"><span class="frac"><span>dN</span><span>dt</span></span> = P − m N &emsp; <span class="frac"><span>dS</span><span>dt</span></span> = ε m N − δ S &emsp; P = P<sub>0</sub><span class="rm">[</span>1 + a<sub>2</sub>(C<sup>at</sup> − C<sup>at</sup><sub>0</sub>)<span class="rm">]</span></span>
+        <p>where C<sup>at</sup>, C<sup>up</sup>, C<sup>lo</sup>, N and S are the inventories of carbon (GtC) in the atmosphere, upper ocean, deep ocean, vegetation and soil, P is photosynthesis by plants (GtC/yr) and E is human CO<sub>2</sub> emissions (GtC/yr).</p>
+        <p>If we specify emissions of CO<sub>2</sub>, these equations tell us how the atmospheric concentration changes over time. More CO<sub>2</sub> traps more heat:</p>
+        <span class="eq">F<sub>CO₂</sub> = 5.35 <span class="rm">ln(</span>C<sup>at</sup> / C<sup>at</sup><sub>0</sub><span class="rm">)</span> &ensp; <span class="rm">W/m²</span></span>
+        <p>Where C<sup>at</sup><sub>0</sub> is the natural concentration before humans started emitting CO<sub>2</sub>.</p>
         <p>This relationship is logarithmic. This means that CO<sub>2</sub> traps less heat as CO<sub>2</sub> concentrations increase.</p>
         <h3>References</h3>
         <ul>
@@ -177,58 +173,149 @@
       <p>CO<sub>2</sub> is a long lived greenhouse gas that takes hundreds of years to be removed from the atmosphere. As a result CO<sub>2</sub> emitted today will still have an effect on the climate system hundreds of years from now (see the CO<sub>2</sub> pulse experiment). Other greenhouse gases remain in the atmosphere for far shorter periods of time. The second most important greenhouse gas related to human activities is methane. Methane emissions are primarily related to waste management, changes in agriculture and the production of fossil fuels. The main way methane is removed from the atmosphere is through oxidation. Methane will typically last about 10 years in the atmosphere; as a result if we stopped producing methane today it would return to background concentrations in a few decades (see the CH<sub>4</sub> pulse experiment).</p>
       <details>
         <summary>I'm ready to learn more</summary>
-        <p>Methane is modelled using a single box that represents the atmospheric store of methane. Methane emissions (E<sup>CH4</sup>) increase the methane concentration (C<sup>CH4</sup>) and the concentration decreases due to oxidation (in fact the rate of decay (&tau;<sup>CH4</sup>) is not exactly exponential as it depends on the amount of methane in the atmosphere). The equation describing methane concentration in Carbonator is:</p>
-        <p><img src="assets/img/content/18.png" alt="Methane equation"></p>
-        <p>If we specify emissions of CH<sub>4</sub>, this equation can tell us how CH<sub>4</sub> concentrations change in the atmosphere over time. CH<sub>4</sub> is a greenhouse gas which acts to trap heat emitted from the surface of the planet. More CH<sub>4</sub> means that a greater amount of heat is trapped and the more energy is retained by the surface climate. This can be expressed mathematically as:</p>
-        <p><img src="assets/img/content/19.png" alt="Methane forcing equation"></p>
-        <p>Where C<sub>o</sub><sup>CH4</sup> is the natural atmospheric concentration before humans started emitting CH<sub>4</sub> into the atmosphere.</p>
-        <p>As with CO<sub>2</sub>, this relationship is logarithmic. This means that CH<sub>4</sub> has a diminishing effect on the additional energy as CH<sub>4</sub> concentrations increase.</p>
+        <p>Methane is modelled using a single box that represents the atmospheric store of methane. Emissions (E) increase the concentration (C), and oxidation removes it with a lifetime &tau; of roughly a decade (in Carbonator &tau; itself depends slightly on how much methane there is):</p>
+        <span class="eq"><span class="frac"><span>dC</span><span>dt</span></span> = <span class="frac"><span>E</span><span>k</span></span> − <span class="frac"><span>C</span><span>τ(C)</span></span></span>
+        <p>(k just converts emissions in Tg per year into concentration units, ppb.) More CH<sub>4</sub> traps more heat, with a square-root rather than logarithmic dependence:</p>
+        <span class="eq">F<sub>CH₄</sub> = 0.036 <span class="rm">(</span>√C − √C<sub>0</sub><span class="rm">)</span> &ensp; <span class="rm">W/m²</span></span>
+        <p>Where C<sub>0</sub> is the natural concentration before human emissions began. As with CO<sub>2</sub>, each extra tonne has a diminishing effect as concentrations rise — and because &tau; is only about 12 years, concentrations respond within decades of any change in emissions (compare the CH<sub>4</sub> and CO<sub>2</sub> pulse experiments).</p>
         <h3>References</h3>
         <ul>
           <li>Boucher, Olivier, Pierre Friedlingstein, Bill Collins, and Keith P. Shine. &ldquo;The Indirect Global Warming Potential and Global Temperature Change Potential Due to Methane Oxidation.&rdquo; Environmental Research Letters 4, no. 4 (2009): 044007. <a href="https://doi.org/10.1088/1748-9326/4/4/044007" target="_blank" rel="noopener">https://doi.org/10.1088/1748-9326/4/4/044007</a>.</li>
         </ul>
       </details>
 
+      <h3>Nitrous Oxide (N<sub>2</sub>O) Model</h3>
+      <p>Nitrous oxide comes mostly from farming — nitrogen fertilisers and manure feed soil microbes that release
+      N<sub>2</sub>O. It is a strong greenhouse gas that survives for about 120 years, until it is finally broken
+      apart by ultraviolet sunlight high in the stratosphere.</p>
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <p>N<sub>2</sub>O uses exactly the same single-box idea as methane, just with a much longer (and constant)
+        lifetime &tau; ≈ 120 years:</p>
+        <span class="eq"><span class="frac"><span>dC</span><span>dt</span></span> = <span class="frac"><span>E</span><span>k</span></span> − <span class="frac"><span>C</span><span>τ</span></span></span>
+        <p>and a square-root forcing law like methane's:</p>
+        <span class="eq">F<sub>N₂O</sub> = 0.12 <span class="rm">(</span>√C − √C<sub>0</sub><span class="rm">)</span> &ensp; <span class="rm">W/m²</span></span>
+        <p>with C in ppb and C<sub>0</sub> = 270 ppb the pre-industrial concentration. The long lifetime means
+        N<sub>2</sub>O behaves in between methane (12 years) and CO<sub>2</sub> (centuries): emissions we release
+        today will still be warming the planet at the end of the century.</p>
+      </details>
+
+      <h3>Synthetic Gases Model</h3>
+      <p>CFCs, HFCs and related industrial chemicals are entirely human-made — refrigerants, foams and old spray-can
+      propellants. Kilogram for kilogram they are thousands of times more powerful than CO<sub>2</sub>. Look at this
+      input's history in the app: emissions peak around 1990 and then collapse — the Montreal Protocol, agreed in
+      1987 to save the ozone layer, which also avoided a lot of warming.</p>
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <p>Dozens of individual gases with different lifetimes are bundled into <em>one equivalent gas</em>, measured
+        in CFC-12-equivalent units, with a single effective lifetime &tau; ≈ 100 years:</p>
+        <span class="eq"><span class="frac"><span>dC</span><span>dt</span></span> = <span class="frac"><span>E</span><span>k</span></span> − <span class="frac"><span>C</span><span>τ</span></span></span>
+        <p>Because these gases absorb in an "atmospheric window" where little else absorbs, their forcing does not
+        saturate — it is simply proportional to the concentration (in ppb-equivalent):</p>
+        <span class="eq">F<sub>syn</sub> = 0.32 &middot; C &ensp; <span class="rm">W/m²</span></span>
+        <p>That linearity is why a tiny concentration — parts per <em>trillion</em> — can matter for climate.</p>
+      </details>
+
+      <h3>Ozone Model</h3>
+      <p>Ozone near the ground is not emitted directly: sunlight cooks it up from precursor pollution (nitrogen
+      oxides from exhausts, carbon monoxide, evaporated fuels). It is a greenhouse gas and a harmful pollutant, and
+      it disappears within weeks if the pollution stops.</p>
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <p>Because the precursors and the ozone they make are so short-lived, no reservoir is needed — the forcing
+        simply tracks the precursor emission rate E (an index in ~Tg per year), exactly like human aerosols but with
+        the opposite sign:</p>
+        <span class="eq">F<sub>O₃</sub> = 0.004 &middot; E &ensp; <span class="rm">W/m²</span></span>
+      </details>
+
       <h3>Volcanic Aerosols</h3>
-      <p>Volcanoes inject large quantities of particulate matter (aerosols) high into the atmosphere (the stratosphere). These fall out of the atmosphere over the course of a few years. These particles are reflective, reflecting away solar energy. As a result, they have a cooling effect. In Carbonator&nbsp;2 volcanic aerosols are specified directly as a radiative forcing time series (W/m²), which you can edit in Advanced mode.</p>
+      <p>Big eruptions inject sulphur dioxide into the stratosphere, where it becomes a reflective haze that cools the planet for a few years (Pinatubo in 1991 cooled Earth by about half a degree).</p>
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <p>The input is the amount of haze injected each year, E (measured as optical depth per year). The
+        stratospheric haze A builds up with injections and settles out with a lifetime &tau; ≈ 1.2 years, and the
+        cooling is proportional to how much haze is present:</p>
+        <span class="eq"><span class="frac"><span>dA</span><span>dt</span></span> = E − <span class="frac"><span>A</span><span>τ</span></span> &emsp; F<sub>volc</sub> = −20 &middot; A &ensp; <span class="rm">W/m²</span></span>
+        <p>Try the Mega Volcano experiment and note how quickly the climate recovers compared with a CO<sub>2</sub>
+        pulse — the haze is gone in a few years, and the ocean's memory of the cooling fades over decades.</p>
+      </details>
 
       <h3>Human Aerosols</h3>
-      <p>Burning of fossil fuels and deforestation releases particulate matter (human aerosols) into the lower atmosphere. These particles are washed out of the atmosphere on the timescale of a few days, primarily by rainfall. Like volcanic aerosols, human aerosols reflect away solar energy and so have a cooling effect. Because the removal of human aerosols from the atmosphere is so fast, the aerosol forcing closely follows the emission rate: if you stop emissions, the cooling effect disappears almost instantly (see the Geoengineering Failure experiment). In Carbonator&nbsp;2 human aerosols are specified as a radiative forcing time series (W/m²).</p>
+      <p>Burning fossil fuels releases particles (mostly from sulphur dioxide, SO<sub>2</sub>) into the lower
+      atmosphere. They reflect sunlight and brighten clouds, cooling the planet — but rain washes them out within
+      days, so their cooling only lasts while we keep emitting (see the Geoengineering Failure experiment).</p>
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <p>Because the particles are removed so fast, the amount in the air simply tracks the emission rate E
+        (Tg of SO<sub>2</sub> per year), and so does the forcing — no reservoir equation needed:</p>
+        <span class="eq">F<sub>aer</sub> = −0.009 &middot; E &ensp; <span class="rm">W/m²</span></span>
+        <p>Today's ~100 Tg per year of SO<sub>2</sub> gives roughly −1 W/m² — hiding around half a degree of
+        greenhouse warming. (In reality the cloud-brightening part makes the relationship a bit weaker than linear
+        at high emissions; proportionality is a good teaching approximation.)</p>
+      </details>
 
       <h3>Sea-level Model</h3>
-      <p>The primary causes of sea level rise are the thermal expansion of water (the volume of water increases if temperature increases) and the melting of land ice (primarily the ice sheets on Antarctica and Greenland and glaciers around the world). Carbonator models both contributions.</p>
+      <p>The primary causes of sea level rise are the thermal expansion of water (warmer water takes up more room) and the melting of land ice (the Greenland and Antarctic ice sheets, and glaciers). Carbonator models both contributions.</p>
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <p>Each contribution rises at a rate proportional to how much warmer the planet is (relative to a reference
+        temperature T<sub>ref</sub>), and would slowly relax back over a long adjustment time &tau;:</p>
+        <span class="eq"><span class="frac"><span>dS</span><span>dt</span></span> = a &middot; <span class="rm">max(</span>T − T<sub>ref</sub>, 0<span class="rm">)</span> − <span class="frac"><span>S</span><span>τ</span></span></span>
+        <p>The thermal part responds over ~200 years and the land-ice part over ~800 years — which is why sea level
+        keeps rising long after temperature stabilises. Watch the two coloured layers in the sea-level output. There
+        is also a <em>regional</em> sea-level map in the Local projections panel: winds and currents pile the extra
+        water up unevenly.</p>
+      </details>
+
+      <h3>Solar and Albedo</h3>
+      <p>Two more things change how much sunlight the planet absorbs: the Sun's own brightness (specified directly
+      as a forcing in W/m² — it varies by only ~0.1% over the 11-year sunspot cycle) and the planet's reflectivity
+      or <em>albedo</em>, currently about 0.31.</p>
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <p>Earth intercepts S<sub>0</sub> ≈ 1360 W/m² of sunlight, which spread over the whole rotating sphere is
+        S<sub>0</sub>/4 ≈ 340 W/m². If the albedo &alpha; changes, the absorbed sunlight changes by:</p>
+        <span class="eq">F<sub>alb</sub> = − <span class="frac"><span>S<sub>0</sub></span><span>4</span></span> <span class="rm">(</span>&alpha; − 0.31<span class="rm">)</span> ≈ −340 <span class="rm">(</span>&alpha; − 0.31<span class="rm">)</span> &ensp; <span class="rm">W/m²</span></span>
+        <p>So brightening the planet by just 0.01 reflects an extra 3.4 W/m² — comparable to all human greenhouse
+        forcing so far. The White Roofs experiment uses this input.</p>
+      </details>
+
+      <h3>Natural Variability</h3>
+      <p>Real temperatures wobble from year to year even when nothing is forcing them. Carbonator can add two
+      sources of this randomness: the ocean stirring heat between its warm surface and cold depths (ENSO-like —
+      El Niño years run warm, La Niña years cool), and random fluctuations in cloudiness and sunshine.</p>
+      <details>
+        <summary>I'm ready to learn more</summary>
+        <p><b>Ocean mixing</b> adds a random heat exchange q(t) between the two boxes — the same q is added to the
+        surface box and removed from the deep box, so energy is conserved and the temperature always recovers:</p>
+        <span class="eq">C <span class="frac"><span>dT</span><span>dt</span></span> = … + q(t) &emsp; C<sub>o</sub> <span class="frac"><span>dT<sub>o</sub></span><span>dt</span></span> = … − q(t)</span>
+        <p>q(t) is generated as a damped oscillator with an ENSO-like ~4-year period and an amplitude of about
+        1 W/m². <b>Clouds &amp; sun</b> instead perturb the albedo with slowly-varying red noise (about ±0.5 W/m²,
+        matching satellite measurements of the planet's energy balance). Unlike mixing, this genuinely adds or
+        removes energy, so its effects can linger for years. With both switched on, the model's year-to-year
+        variability matches the observed temperature record.</p>
+      </details>
 
       <h3>Solving the Equations</h3>
       <p>To use the model, your computer needs to solve the various equations that make up the Carbonator climate model. To demonstrate how this works, click below.</p>
       <details>
         <summary>I'm ready to learn more</summary>
         <p>To demonstrate how this works, let&rsquo;s use a simpler model: a single box model of the climate system. In this case, we are going to ignore the effect of the deep ocean (i.e. we assume that no heat is transferred from the upper to the lower ocean). Also instead of having several inputs, our input is going to be the total incoming energy (E<sub>in</sub>), so that we don&rsquo;t need to worry about the CO<sub>2</sub>, methane and other sub-models. Mathematically our model can be written:</p>
-        <p><img src="assets/img/content/22.png" alt="Single box equation"></p>
+        <span class="eq">C <span class="frac"><span>dT</span><span>dt</span></span> = E<sub>in</sub> − aT</span>
         <p>This says, the change in the energy content in our box (which represents the climate system) per second equals the energy coming in per second (the model input) minus the energy emitted out to space per second (which depends on the surface temperature). C and a are constants.</p>
         <p>Using this equation, if we know E<sub>in</sub>, we want to be able to calculate how the surface temperature changes in time. This means that we need to integrate this equation to find T at different times.</p>
-        <p>If E<sub>in</sub> could be described as a simple mathematical function we could probably integrate the equation analytically. For example if E<sub>in</sub> were a constant (i.e. incoming energy stays the same over time), then:</p>
-        <p><img src="assets/img/content/23.png" alt="Analytic solution"></p>
-        <p>We also need to know the temperature at the start of our simulation T(0). For all Carbonator simulations we calculate temperature relative to the start of the simulation, so T(0)&nbsp;=&nbsp;0. Substituting this into the equation:</p>
-        <p><img src="assets/img/content/24.png" alt="Solution with initial condition"></p>
-        <p>And substituting back for c<sub>1</sub>:</p>
-        <p><img src="assets/img/content/25.png" alt="Full solution"></p>
-        <p>As an example, if we use the Carbonator values a&nbsp;=&nbsp;1 W/m²/K, C&nbsp;=&nbsp;6 W&nbsp;yr/m²/K, and there is a sudden jump in the energy coming in (e.g. the sun gets a little bit stronger), E<sub>in</sub>&nbsp;=&nbsp;1 W/m², then the temperature response will be:</p>
-        <p><img src="assets/img/content/26.png" alt="Step response"></p>
-        <p>However, E<sub>in</sub> may change with time, i.e.:</p>
-        <p><img src="assets/img/content/27.png" alt="Time varying input"></p>
-        <p>For example, imagine that over time the sun gets stronger, increasing the incoming energy, but during this period there is a volcano that causes a decrease in the incoming energy (through reflection) for a short period:</p>
+        <p>If E<sub>in</sub> is constant, this equation can be integrated exactly. With T(0)&nbsp;=&nbsp;0 (Carbonator always measures temperature relative to the start), the solution is:</p>
+        <span class="eq">T(t) = <span class="frac"><span>E<sub>in</sub></span><span>a</span></span> <span class="rm">(</span>1 − e<sup>−at/C</sup><span class="rm">)</span></span>
+        <p>The temperature rises quickly at first and then levels off at E<sub>in</sub>/a: the box warms until it radiates away exactly as much extra energy as is coming in. For example with a&nbsp;=&nbsp;1 W/m²/K, C&nbsp;=&nbsp;6 W&nbsp;yr/m²/K and a sudden jump of E<sub>in</sub>&nbsp;=&nbsp;1 W/m², the box warms towards 1&nbsp;°C with a timescale of C/a = 6 years.</p>
+        <p>However, in the real world E<sub>in</sub> changes with time — E<sub>in</sub>(t). For example, imagine that over time the sun gets stronger, but during this period a volcano briefly reduces the incoming energy:</p>
         <p><img src="assets/img/content/28.png" alt="Complex forcing"></p>
-        <p>Now we can&rsquo;t integrate this in the normal way. Instead we do what&rsquo;s called a numerical integration. This only provides an approximate answer, but if we do it right then the approximation can be as accurate as we want it to be. So how does this work?</p>
-        <p>Let&rsquo;s start with dT/dt, what does this mean? It&rsquo;s the gradient in T with respect to time. Let&rsquo;s look at this on a graph of temperature versus time:</p>
+        <p>Now we can&rsquo;t integrate this in the normal way. Instead we do a <em>numerical integration</em>. This only provides an approximate answer, but if we do it right the approximation can be as accurate as we want. So how does it work?</p>
+        <p>Let&rsquo;s start with dT/dt — the gradient of T with respect to time. Look at this on a graph of temperature versus time:</p>
         <p><img src="assets/img/content/29.png" alt="Gradient on a curve"></p>
-        <p>The gradient dT/dt at time t is the tangent to the line. How do we calculate the value of the gradient? We can get an approximate answer by calculating:</p>
-        <p><img src="assets/img/content/30.png" alt="Finite difference"></p>
-        <p>To make this approximation better you just need to make the step smaller. In fact if the step shrinks to zero then the answer is exact (this is the basis of calculus). OK, let&rsquo;s stick with our approximation:</p>
-        <p><img src="assets/img/content/33.png" alt="Finite difference approximation"></p>
-        <p>Let&rsquo;s substitute this into our model equation:</p>
-        <p><img src="assets/img/content/34.png" alt="Discretised equation"></p>
-        <p>A little rearranging and we get:</p>
-        <p><img src="assets/img/content/35.png" alt="Update equation"></p>
+        <p>The gradient dT/dt at time t is the tangent to the curve. We can approximate it over a small time step &Delta;t:</p>
+        <span class="eq"><span class="frac"><span>dT</span><span>dt</span></span> ≈ <span class="frac"><span>T(t+Δt) − T(t)</span><span>Δt</span></span></span>
+        <p>(the smaller &Delta;t, the better the approximation — shrink it to zero and it is exact; that is the basis of calculus). Substituting this into our model equation and rearranging:</p>
+        <span class="eq">T(t+Δt) = T(t) + <span class="frac"><span>Δt</span><span>C</span></span> <span class="rm">[</span>E<sub>in</sub>(t) − aT(t)<span class="rm">]</span></span>
         <p>What does this equation say? Let&rsquo;s imagine t is the time now. The equation says if we know what the temperature is now and how much energy is entering the climate system now, we can estimate what the temperature will be a little way in the future.</p>
         <p>Using our estimate for the temperature a little way into the future we can use the same equation to estimate the temperature a little further in the future. By using this equation multiple times we can estimate the temperature progressively further into the future. If the (time) steps that we use to make these calculations are not too large, our answer can be quite accurate.</p>
         <p>We can now use computer code to do this calculation multiple times. In fact we can even run this model in an <a href="assets/pdfs/excel_model.xlsx">Excel spreadsheet</a>. Check this out to see how temperature changes in response to the E<sub>in</sub> shown above; or modify E<sub>in</sub> to create your own scenario.</p>

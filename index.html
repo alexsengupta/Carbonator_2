@@ -53,7 +53,6 @@
             <button class="btn orange" id="btnStartDefault">Start with SSP2-4.5</button>
             <button class="btn" id="btnOpenInputsCSV">Download input data (CSV)</button>
           </div>
-          <div class="footnote" id="variantNote" style="margin:10px 0 0;"></div>
         </div>
 
         <div class="info-bar">
@@ -101,13 +100,12 @@
               <div class="hint" id="controlsHint">Toggle inputs on/off, then run the model.</div>
               <div class="panel-actions">
                 <button class="btn advOnly" id="btnParams" title="Edit model parameters (energy balance, carbon cycle, methane, sea level, internal variability).">Edit parameters</button>
-                <button class="btn" id="btnViewData" title="View input data table for this scenario (including any edits).">Input table</button>
+                <button class="btn" id="btnViewData" title="View input data table for this scenario (including any edits).">Input data</button>
                 <button class="btn" id="btnDownloadScenarioCSV" title="Download the scenario input time series as a CSV file.">Save inputs CSV</button>
                 <button class="btn" id="btnExportOutput" disabled title="Download model outputs as a CSV file (available after running).">Export outputs CSV</button>
               </div>
               <div style="margin-top:10px; font-size:11px; color:#666;">
-                <span id="modeBadge" class="badge">BASIC MODE</span>
-                <span id="editBadge" style="margin-left:6px;"></span>
+                <span id="editBadge"></span>
               </div>
             </div>
           </div>

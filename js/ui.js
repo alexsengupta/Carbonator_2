@@ -37,7 +37,6 @@
         n.style.display = "block";
       }
     });
-    el("modeBadge").textContent = (state.uiMode==="advanced") ? "ADVANCED MODE" : "BASIC MODE";
   }
 
   function setActiveSidebar(){
@@ -315,23 +314,14 @@
   }
 
   const VARIANT_INFO = {
-    simple: {name:"Simple model", hint:"Simple model: CO₂, CH₄, aerosols, volcanoes, solar and albedo. Minor gases are off."},
-    mixed:  {name:"Mixed model", hint:"Mixed model: emission inputs plus N₂O, ozone and synthetic-gas forcings (W/m²)."},
-    full:   {name:"Full model", hint:"Full model: every input is an emission, including N₂O, ozone precursors and synthetic gases."}
+    simple: {hint:"Inputs: CO₂, CH₄, aerosols, volcanoes, solar and albedo. Minor gases are off."},
+    mixed:  {hint:"Emission inputs plus N₂O, ozone and synthetic-gas forcings (W/m²)."},
+    full:   {hint:"Every input is an emission — including N₂O, ozone precursors and synthetic gases."}
   };
 
   function updateVariantUI(){
     const hint = el("controlsHint");
     if (hint) hint.textContent = VARIANT_INFO[APP_VARIANT].hint;
-    const note = el("variantNote");
-    if (note){
-      const links = [
-        ["full", "index.html", "Full"],
-        ["simple", "index.html?model=simple", "Simple"],
-        ["mixed", "index.html?model=mixed", "Mixed"]
-      ].map(([v, href, label]) => v === APP_VARIANT ? `<b>${label}</b>` : `<a href="${href}">${label}</a>`).join(" · ");
-      note.innerHTML = `You are using the <b>${VARIANT_INFO[APP_VARIANT].name}</b>. Model versions: ${links}`;
-    }
   }
 
   function updateIVToggle(){
@@ -965,8 +955,13 @@
     el("btnRun").style.display = isOutput ? "none" : "";
     el("btnContinue").style.display = isOutput ? "" : "none";
 
-    // Export outputs button (in controls panel)
+    // Controls panel buttons: Save inputs belongs to the edit view,
+    // Export outputs to the output view.
+    if (el("btnDownloadScenarioCSV")){
+      el("btnDownloadScenarioCSV").style.display = isOutput ? "none" : "";
+    }
     if (el("btnExportOutput")){
+      el("btnExportOutput").style.display = isOutput ? "" : "none";
       el("btnExportOutput").disabled = !(isOutput && state.lastOutput);
     }
 

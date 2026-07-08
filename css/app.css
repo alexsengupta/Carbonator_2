@@ -85,8 +85,9 @@
     }
     .modeBtn:hover{ background: rgba(255,255,255,0.14); }
     .modeBtn.active{
-      background: rgba(255,255,255,0.22);
-      border-color: rgba(255,255,255,0.65);
+      background: var(--accent);
+      border-color: var(--accentDark);
+      color: #1b1b1b;
       font-weight:700;
     }
 

@@ -57,19 +57,18 @@ The scripts are plain (non-module) JavaScript loaded in dependency order and
 sharing one scope — which is what lets the same code run unbundled from `file://`
 and be trivially inlined into a single file.
 
-## Three model versions
+## The model (and two hidden teaching variants)
 
-The app ships as three separate versions — there is no in-app mode switching:
+The production app (`index.html`) is fully emission-driven: CO2, CH4, aerosols
+(Tg SO2/yr), volcanic injection (AOD/yr), N2O (Tg/yr), ozone precursors
+(~Tg/yr), synthetic gases (kt CFC-12-eq/yr), plus solar forcing and albedo.
 
-| Version | URL | Inputs |
-|---|---|---|
-| **Full** (production) | `index.html` | everything as emissions: CO2, CH4, aerosols (Tg SO2/yr), volcanic injection (AOD/yr), N2O (Tg/yr), ozone precursors (~Tg/yr), synthetic gases (kt CFC-12-eq/yr), plus solar forcing and albedo |
-| **Simple** | `simple.html` or `index.html?model=simple` | CO2, CH4, aerosols, volcanoes, solar, albedo only; minor gases excluded; default sensitivity 3.7 degC (vs 3.0) |
-| **Mixed** | `mixed.html` or `index.html?model=mixed` | as Simple, plus the minor gases prescribed as radiative forcing (W/m2) time series |
-
-The home page shows which version is running with links to the others.
-`tools/build-standalone.mjs --variant simple|mixed|full` bakes a version into a
-single-file build.
+Two reduced variants remain available for teachers via query parameter (they
+are not surfaced anywhere in the UI): `index.html?model=simple` (CO2, CH4,
+aerosols, volcanoes, solar, albedo only; minor gases excluded; default
+sensitivity 3.7 degC instead of 3.0) and `index.html?model=mixed` (minor gases
+prescribed as W/m2 forcing series). `tools/build-standalone.mjs --variant ...`
+bakes a variant into a single-file build.
 
 Model internals: the minor-GHG sub-models (N2O one-box, 120-yr lifetime;
 ozone forcing proportional to precursor emissions; synthetic gases as one
