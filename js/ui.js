@@ -955,8 +955,9 @@
     el("btnRun").style.display = isOutput ? "none" : "";
     el("btnContinue").style.display = isOutput ? "" : "none";
 
-    // Controls panel buttons: Save inputs belongs to the edit view,
-    // Export outputs to the output view.
+    // Controls panel buttons: Edit parameters and Save inputs belong to the
+    // edit view, Export outputs to the output view.
+    if (isOutput && el("btnParams")) el("btnParams").style.display = "none";
     if (el("btnDownloadScenarioCSV")){
       el("btnDownloadScenarioCSV").style.display = isOutput ? "none" : "";
     }

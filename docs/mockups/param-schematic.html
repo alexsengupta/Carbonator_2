@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Mockup — schematic parameter editor</title>
+<style>
+  :root{
+    --top:#4f6a72; --top2:#3e545b; --bg:#e9eef2; --panel:#ffffff;
+    --border:#cfd8df; --accent:#f0a23a; --accentDark:#c98322;
+    --text:#1b1b1b; --muted:#5b5b5b;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); }
+  .wrap{ max-width:1060px; margin:18px auto; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:18px 22px; }
+  h1{ font-size:18px; margin:0 0 4px; }
+  .sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px; }
+  .stage{ position:relative; }
+  svg{ width:100%; height:auto; display:block; }
+
+  .boxlabel{ font-size:13px; font-weight:700; fill:#173042; }
+  .small{ font-size:11px; fill:#3c5262; }
+  .tiny{ font-size:10px; fill:#5b6b76; }
+  .flow{ font-size:12px; font-weight:700; fill:#173042; font-style:italic; font-family:Georgia, serif; }
+  .space-label{ font-size:11px; fill:#cfe0ea; letter-spacing:2px; }
+
+  .chip{ cursor:pointer; }
+  .chip rect{ fill:#fdf1de; stroke:var(--accentDark); rx:9; }
+  .chip text{ font-size:11px; font-weight:700; fill:#8a5a12; }
+  .chip:hover rect{ fill:var(--accent); }
+
+  /* mock popover */
+  .popover{
+    position:absolute; left:47%; top:74%; width:250px;
+    background:#fff; border:1px solid var(--border); border-radius:7px;
+    box-shadow:0 8px 26px rgba(0,0,0,0.22); padding:12px 14px; font-size:12px; z-index:5;
+  }
+  .popover h4{ margin:0 0 2px; font-size:12.5px; }
+  .popover .phelp{ color:var(--muted); font-size:11px; margin:0 0 8px; }
+  .popover input[type=range]{ width:100%; }
+  .popover .valrow{ display:flex; justify-content:space-between; align-items:center; margin:2px 0 8px; }
+  .popover .val{ font-weight:700; font-size:14px; }
+  .popover .default{ font-size:10.5px; color:var(--muted); }
+  .popover .btns{ display:flex; gap:6px; }
+  .popover button{ font-size:11px; padding:4px 10px; border-radius:4px; border:1px solid var(--border); background:#f4f7f9; cursor:pointer; }
+  .popover button.orange{ background:var(--accent); border-color:var(--accentDark); font-weight:700; }
+  .footbar{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:11.5px; color:var(--muted); }
+  .footbar button{ font-size:12px; padding:6px 12px; border-radius:4px; border:1px solid var(--border); background:#f4f7f9; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Edit parameters — model schematic <span style="font-weight:400; color:var(--muted); font-size:13px;">(mockup)</span></h1>
+  <p class="sub">Every orange value sits on the part of the model it controls. Click it to change it (example popover shown on γ).</p>
+
+  <div class="stage">
+  <svg viewBox="0 0 1040 610" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#22333e"/><stop offset="1" stop-color="#57707c"/>
+      </linearGradient>
+      <linearGradient id="sea1" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#bfe0f0"/><stop offset="1" stop-color="#8fc3de"/>
+      </linearGradient>
+      <linearGradient id="sea2" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#4f88ac"/><stop offset="1" stop-color="#2d566f"/>
+      </linearGradient>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
+      </marker>
+    </defs>
+
+    <!-- space band -->
+    <rect x="0" y="0" width="1040" height="86" fill="url(#sky)" rx="6"/>
+    <text x="1005" y="24" text-anchor="end" class="space-label">SPACE</text>
+    <circle cx="70" cy="43" r="22" fill="#ffd76e" stroke="#e6b23c" stroke-width="3"/>
+
+    <!-- ================= left: forcing stack ================= -->
+    <rect x="28" y="110" width="252" height="300" fill="#f4f8fa" stroke="#cfd8df" rx="8"/>
+    <text x="42" y="132" class="boxlabel">FORCINGS — from your inputs</text>
+    <text x="42" y="156" class="small">CO₂  ← carbon-cycle model (below)</text>
+    <text x="42" y="177" class="small">CH₄</text>
+    <g class="chip"><rect x="180" y="164" width="86" height="17"/><text x="188" y="176">τ_CH₄ 12 yr</text></g>
+    <text x="42" y="198" class="small">N₂O</text>
+    <g class="chip"><rect x="180" y="185" width="86" height="17"/><text x="188" y="197">τ 120 yr</text></g>
+    <text x="42" y="219" class="small">Synthetic gases</text>
+    <g class="chip"><rect x="180" y="206" width="86" height="17"/><text x="188" y="218">τ 100 yr</text></g>
+    <text x="42" y="240" class="small">Ozone precursors</text>
+    <text x="42" y="261" class="small">Aerosols (SO₂)</text>
+    <g class="chip"><rect x="180" y="248" width="86" height="17"/><text x="186" y="260">−0.009 W/Tg</text></g>
+    <text x="42" y="282" class="small">Volcanic injection</text>
+    <g class="chip"><rect x="180" y="269" width="86" height="17"/><text x="188" y="281">τ_v 1.2 yr</text></g>
+    <text x="42" y="303" class="small">Solar</text>
+    <text x="42" y="324" class="small">Albedo</text>
+    <text x="42" y="348" class="small">Cloud &amp; sun noise</text>
+    <g class="chip"><rect x="180" y="335" width="86" height="17"/><text x="188" y="347">σ 0.5 W/m²</text></g>
+    <text x="42" y="372" class="small">Ocean-mixing noise</text>
+    <g class="chip"><rect x="180" y="359" width="86" height="17"/><text x="188" y="371">σ 1.0 · 4 yr</text></g>
+    <text x="42" y="396" class="tiny">(time series come from the input curves)</text>
+
+    <!-- big forcing arrow into the surface box -->
+    <path d="M282 260 L344 260" stroke="#e07b28" stroke-width="9" marker-end="url(#arr)" fill="none"/>
+    <text x="288" y="245" class="flow">F(t)</text>
+
+    <!-- ================= centre: two-box ocean ================= -->
+    <!-- surface box -->
+    <rect x="352" y="170" width="330" height="140" fill="url(#sea1)" stroke="#6d97ad" rx="8"/>
+    <text x="368" y="194" class="boxlabel">ATMOSPHERE + UPPER OCEAN</text>
+    <text x="368" y="214" class="small">temperature T</text>
+    <g class="chip"><rect x="368" y="272" width="150" height="20"/><text x="376" y="286">heat capacity c_u = 8</text></g>
+
+    <!-- deep box -->
+    <rect x="352" y="360" width="330" height="140" fill="url(#sea2)" stroke="#2d566f" rx="8"/>
+    <text x="368" y="384" class="boxlabel" fill="#eaf3f8" style="fill:#eaf3f8;">DEEP OCEAN</text>
+    <text x="368" y="404" class="small" style="fill:#d3e5ef;">temperature T₀</text>
+    <g class="chip"><rect x="368" y="462" width="158" height="20"/><text x="376" y="476">heat capacity c_l = 110</text></g>
+
+    <!-- radiation to space -->
+    <path d="M560 170 L560 92" stroke="#c0392b" stroke-width="7" marker-end="url(#arr)" fill="none"/>
+    <text x="572" y="126" class="flow" fill="#7c1d12" style="fill:#7c1d12;">λT — heat radiated to space</text>
+    <g class="chip"><rect x="572" y="134" width="200" height="20"/><text x="580" y="148">climate sensitivity S = 3.0 °C</text></g>
+    <text x="572" y="168" class="tiny">λ = F₂ₓ / S — higher S ⇒ weaker cooling</text>
+
+    <!-- exchange arrow -->
+    <path d="M440 316 L440 354" stroke="#2c637f" stroke-width="7" marker-start="url(#arr)" marker-end="url(#arr)" fill="none"/>
+    <text x="404" y="340" text-anchor="end" class="flow">γ(T − T₀)</text>
+    <g class="chip"><rect x="452" y="326" width="72" height="20"/><text x="460" y="340">γ = 0.7</text></g>
+
+    <!-- variability squiggle -->
+    <path d="M610 318 q8 6 0 12 q-8 6 0 12 q8 6 0 12" stroke="#8e44ad" stroke-width="4" fill="none" marker-end="url(#arr)"/>
+    <text x="626" y="340" class="flow" style="fill:#6b2f86;">q(t) random ocean mixing</text>
+
+    <!-- ================= bottom-left: carbon cycle ================= -->
+    <rect x="28" y="430" width="252" height="160" fill="#f2f7f0" stroke="#b9cdb4" rx="8"/>
+    <text x="42" y="452" class="boxlabel">CARBON CYCLE → CO₂ forcing</text>
+    <rect x="42" y="464" width="92" height="30" fill="#fff" stroke="#9fb69a" rx="5"/><text x="50" y="483" class="tiny">Atmosphere CO₂</text>
+    <rect x="42" y="546" width="92" height="30" fill="#fff" stroke="#9fb69a" rx="5"/><text x="58" y="565" class="tiny">Ocean C</text>
+    <rect x="168" y="464" width="92" height="30" fill="#fff" stroke="#9fb69a" rx="5"/><text x="180" y="483" class="tiny">Plants + soil</text>
+    <path d="M88 496 L88 544" stroke="#7a9a72" stroke-width="3" marker-start="url(#arr)" marker-end="url(#arr)" fill="none"/>
+    <path d="M136 479 L166 479" stroke="#7a9a72" stroke-width="3" marker-start="url(#arr)" marker-end="url(#arr)" fill="none"/>
+    <g class="chip"><rect x="150" y="546" width="116" height="20"/><text x="158" y="560">preset #2 · 15 params ▸</text></g>
+
+    <!-- link carbon panel to forcing stack -->
+    <path d="M154 428 L154 412" stroke="#7a9a72" stroke-width="3" marker-end="url(#arr)" fill="none"/>
+
+    <!-- ================= right: sea level ================= -->
+    <rect x="760" y="200" width="252" height="230" fill="#eef4fb" stroke="#b9c9dd" rx="8"/>
+    <text x="776" y="224" class="boxlabel">SEA LEVEL</text>
+    <path d="M776 268 q20 -10 40 0 t40 0 t40 0 t40 0 t40 0" stroke="#4d8bff" stroke-width="3" fill="none"/>
+    <path d="M776 258 q20 -10 40 0 t40 0 t40 0 t40 0 t40 0" stroke="#8fb7ff" stroke-width="2" fill="none"/>
+    <text x="776" y="296" class="small">warmer water expands…</text>
+    <g class="chip"><rect x="776" y="304" width="176" height="18"/><text x="784" y="317">thermal: 0.87 mm/yr·°C, τ 200 yr</text></g>
+    <text x="776" y="346" class="small">…and land ice melts</text>
+    <g class="chip"><rect x="776" y="354" width="176" height="18"/><text x="784" y="367">land ice: 0.87 mm/yr·°C, τ 800 yr</text></g>
+    <text x="776" y="404" class="tiny">driven by surface temperature T</text>
+
+    <!-- T -> sea level arrow -->
+    <path d="M686 240 L754 240" stroke="#4d6f84" stroke-width="5" marker-end="url(#arr)" fill="none"/>
+    <text x="695" y="228" class="flow">T</text>
+  </svg>
+
+  <!-- example popover, as opened by clicking the γ chip -->
+  <div class="popover">
+    <div style="position:absolute; top:-9px; left:24px; width:16px; height:16px; background:#fff; border-left:1px solid var(--border); border-top:1px solid var(--border); transform:rotate(45deg);"></div>
+    <h4>Ocean heat exchange — γ</h4>
+    <p class="phelp">How quickly heat mixes from the surface into the deep ocean. Higher γ ⇒ slower surface warming now, more warming “in the pipeline”.</p>
+    <div class="valrow"><span class="val">0.70 W/m²/°C</span><span class="default">default 0.7 · typical 0.5–1.2</span></div>
+    <input type="range" min="0.2" max="1.5" step="0.05" value="0.7" />
+    <div class="btns"><button class="orange">Apply</button><button>Reset</button><button>Close</button></div>
+  </div>
+  </div>
+
+  <div class="footbar">
+    <span>Click any <b style="color:var(--accentDark);">orange value</b> to change it · changed values get an <b>EDITED</b> ring · table view still available</span>
+    <button>Reset all to defaults</button>
+  </div>
+</div>
+</body>
+</html>
