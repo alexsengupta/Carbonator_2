@@ -11,168 +11,323 @@
   }
   *{ box-sizing:border-box; }
   body{ margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); }
-  .wrap{ max-width:1060px; margin:18px auto; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:18px 22px; }
-  h1{ font-size:18px; margin:0 0 4px; }
-  .sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px; }
+  .wrap{ max-width:1100px; margin:16px auto 40px; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px 20px 18px; }
+  h1{ font-size:17px; margin:0 0 3px; }
+  .sub{ font-size:12.5px; color:var(--muted); margin:0 0 12px; }
+
+  .tabs{ display:flex; gap:6px; border-bottom:1px solid var(--border); margin-bottom:12px; }
+  .tabs button{
+    font-size:12.5px; font-weight:700; padding:7px 14px; border:1px solid var(--border);
+    border-bottom:none; border-radius:5px 5px 0 0; background:#eef3f6; color:#41565f; cursor:pointer;
+    position:relative; top:1px;
+  }
+  .tabs button.active{ background:#fff; color:#1b1b1b; border-bottom:1px solid #fff; }
+
   .stage{ position:relative; }
   svg{ width:100%; height:auto; display:block; }
+  .view{ display:none; }
+  .view.active{ display:block; }
 
-  .boxlabel{ font-size:13px; font-weight:700; fill:#173042; }
-  .small{ font-size:11px; fill:#3c5262; }
-  .tiny{ font-size:10px; fill:#5b6b76; }
-  .flow{ font-size:12px; font-weight:700; fill:#173042; font-style:italic; font-family:Georgia, serif; }
-  .space-label{ font-size:11px; fill:#cfe0ea; letter-spacing:2px; }
+  .boxlabel{ font:700 12.5px Arial; fill:#173042; }
+  .boxlabel.light{ fill:#eaf3f8; }
+  .small{ font:11px Arial; fill:#3c5262; }
+  .small.light{ fill:#d6e7f0; }
+  .tiny{ font:10px Arial; fill:#61717c; }
+  .flow{ font:italic 700 12px Georgia, serif; fill:#173042; }
+  .stock{ font:700 11px Arial; fill:#2c4a35; }
+  .space-label{ font:11px Arial; fill:#b9cede; letter-spacing:2.5px; }
 
   .chip{ cursor:pointer; }
-  .chip rect{ fill:#fdf1de; stroke:var(--accentDark); rx:9; }
-  .chip text{ font-size:11px; font-weight:700; fill:#8a5a12; }
+  .chip rect{ fill:#fdf1de; stroke:var(--accentDark); stroke-width:1; }
+  .chip text{ font:700 10.5px Arial; fill:#8a5a12; }
   .chip:hover rect{ fill:var(--accent); }
+  .chip.edited rect{ fill:#fce6c2; stroke:#a5651a; stroke-width:2; }
 
-  /* mock popover */
   .popover{
-    position:absolute; left:47%; top:74%; width:250px;
+    position:absolute; width:252px;
     background:#fff; border:1px solid var(--border); border-radius:7px;
     box-shadow:0 8px 26px rgba(0,0,0,0.22); padding:12px 14px; font-size:12px; z-index:5;
   }
-  .popover h4{ margin:0 0 2px; font-size:12.5px; }
-  .popover .phelp{ color:var(--muted); font-size:11px; margin:0 0 8px; }
-  .popover input[type=range]{ width:100%; }
-  .popover .valrow{ display:flex; justify-content:space-between; align-items:center; margin:2px 0 8px; }
+  .popover h4{ margin:0 0 3px; font-size:12.5px; }
+  .popover .phelp{ color:var(--muted); font-size:11px; margin:0 0 8px; line-height:1.45; }
+  .popover input[type=range]{ width:100%; margin:2px 0 6px; }
+  .popover .valrow{ display:flex; justify-content:space-between; align-items:baseline; }
   .popover .val{ font-weight:700; font-size:14px; }
   .popover .default{ font-size:10.5px; color:var(--muted); }
   .popover .btns{ display:flex; gap:6px; }
   .popover button{ font-size:11px; padding:4px 10px; border-radius:4px; border:1px solid var(--border); background:#f4f7f9; cursor:pointer; }
   .popover button.orange{ background:var(--accent); border-color:var(--accentDark); font-weight:700; }
-  .footbar{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:11.5px; color:var(--muted); }
+
+  .footbar{ display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:11.5px; color:var(--muted); }
   .footbar button{ font-size:12px; padding:6px 12px; border-radius:4px; border:1px solid var(--border); background:#f4f7f9; cursor:pointer; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Edit parameters — model schematic <span style="font-weight:400; color:var(--muted); font-size:13px;">(mockup)</span></h1>
-  <p class="sub">Every orange value sits on the part of the model it controls. Click it to change it (example popover shown on γ).</p>
+  <h1>Edit parameters <span style="font-weight:400; color:var(--muted); font-size:13px;">(mockup)</span></h1>
+  <p class="sub">Each orange value sits on the part of the model it controls — click it to change it.</p>
 
-  <div class="stage">
-  <svg viewBox="0 0 1040 610" xmlns="http://www.w3.org/2000/svg">
+  <div class="tabs">
+    <button class="active" onclick="show(0,this)">Climate system</button>
+    <button onclick="show(1,this)">Carbon cycle</button>
+  </div>
+
+  <!-- ============================================================ VIEW 1 -->
+  <div class="view active stage" id="v0">
+  <svg viewBox="0 0 1060 570" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#22333e"/><stop offset="1" stop-color="#57707c"/>
+        <stop offset="0" stop-color="#22333e"/><stop offset="1" stop-color="#4a626e"/>
       </linearGradient>
       <linearGradient id="sea1" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#bfe0f0"/><stop offset="1" stop-color="#8fc3de"/>
+        <stop offset="0" stop-color="#cbe6f4"/><stop offset="1" stop-color="#9dcbe2"/>
       </linearGradient>
       <linearGradient id="sea2" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#4f88ac"/><stop offset="1" stop-color="#2d566f"/>
+        <stop offset="0" stop-color="#4d86aa"/><stop offset="1" stop-color="#2b5169"/>
       </linearGradient>
-      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-        <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
-      </marker>
+      <!-- fixed-size arrowheads (do not scale with stroke width) -->
+      <marker id="a-red" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14"
+              refX="7" refY="7" orient="auto"><path d="M1,1 L13,7 L1,13 z" fill="#b8402c"/></marker>
+      <marker id="a-org" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14"
+              refX="7" refY="7" orient="auto"><path d="M1,1 L13,7 L1,13 z" fill="#dd8033"/></marker>
+      <marker id="a-blu" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12"
+              refX="6" refY="6" orient="auto"><path d="M1,1 L11,6 L1,11 z" fill="#2c637f"/></marker>
+      <marker id="a-blu-s" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12"
+              refX="6" refY="6" orient="auto-start-reverse"><path d="M1,1 L11,6 L1,11 z" fill="#2c637f"/></marker>
+      <marker id="a-pur" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11"
+              refX="5.5" refY="5.5" orient="auto"><path d="M1,1 L10,5.5 L1,10 z" fill="#7d3f9c"/></marker>
+      <marker id="a-gry" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12"
+              refX="6" refY="6" orient="auto"><path d="M1,1 L11,6 L1,11 z" fill="#4d6f84"/></marker>
+      <marker id="a-grn" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11"
+              refX="5.5" refY="5.5" orient="auto"><path d="M1,1 L10,5.5 L1,10 z" fill="#5f8a57"/></marker>
     </defs>
 
     <!-- space band -->
-    <rect x="0" y="0" width="1040" height="86" fill="url(#sky)" rx="6"/>
-    <text x="1005" y="24" text-anchor="end" class="space-label">SPACE</text>
-    <circle cx="70" cy="43" r="22" fill="#ffd76e" stroke="#e6b23c" stroke-width="3"/>
+    <rect x="0" y="0" width="1060" height="74" fill="url(#sky)" rx="6"/>
+    <text x="1036" y="22" text-anchor="end" class="space-label">SPACE</text>
+    <circle cx="58" cy="37" r="19" fill="#ffd76e" stroke="#e6b23c" stroke-width="3"/>
 
-    <!-- ================= left: forcing stack ================= -->
-    <rect x="28" y="110" width="252" height="300" fill="#f4f8fa" stroke="#cfd8df" rx="8"/>
-    <text x="42" y="132" class="boxlabel">FORCINGS — from your inputs</text>
-    <text x="42" y="156" class="small">CO₂  ← carbon-cycle model (below)</text>
-    <text x="42" y="177" class="small">CH₄</text>
-    <g class="chip"><rect x="180" y="164" width="86" height="17"/><text x="188" y="176">τ_CH₄ 12 yr</text></g>
-    <text x="42" y="198" class="small">N₂O</text>
-    <g class="chip"><rect x="180" y="185" width="86" height="17"/><text x="188" y="197">τ 120 yr</text></g>
-    <text x="42" y="219" class="small">Synthetic gases</text>
-    <g class="chip"><rect x="180" y="206" width="86" height="17"/><text x="188" y="218">τ 100 yr</text></g>
-    <text x="42" y="240" class="small">Ozone precursors</text>
-    <text x="42" y="261" class="small">Aerosols (SO₂)</text>
-    <g class="chip"><rect x="180" y="248" width="86" height="17"/><text x="186" y="260">−0.009 W/Tg</text></g>
-    <text x="42" y="282" class="small">Volcanic injection</text>
-    <g class="chip"><rect x="180" y="269" width="86" height="17"/><text x="188" y="281">τ_v 1.2 yr</text></g>
-    <text x="42" y="303" class="small">Solar</text>
-    <text x="42" y="324" class="small">Albedo</text>
-    <text x="42" y="348" class="small">Cloud &amp; sun noise</text>
-    <g class="chip"><rect x="180" y="335" width="86" height="17"/><text x="188" y="347">σ 0.5 W/m²</text></g>
-    <text x="42" y="372" class="small">Ocean-mixing noise</text>
-    <g class="chip"><rect x="180" y="359" width="86" height="17"/><text x="188" y="371">σ 1.0 · 4 yr</text></g>
-    <text x="42" y="396" class="tiny">(time series come from the input curves)</text>
+    <!-- ---------------- forcings panel ---------------- -->
+    <rect x="24" y="108" width="266" height="316" fill="#f5f9fb" stroke="#cfd8df" rx="8"/>
+    <text x="40" y="130" class="boxlabel">FORCINGS</text>
+    <text x="40" y="147" class="tiny">time series come from your input curves</text>
 
-    <!-- big forcing arrow into the surface box -->
-    <path d="M282 260 L344 260" stroke="#e07b28" stroke-width="9" marker-end="url(#arr)" fill="none"/>
-    <text x="288" y="245" class="flow">F(t)</text>
+    <text x="40" y="174" class="small">CO₂</text>
+    <g class="chip"><rect x="150" y="162" width="124" height="17" rx="8"/><text x="158" y="174">from carbon cycle ▸</text></g>
+    <text x="40" y="199" class="small">CH₄</text>
+    <g class="chip"><rect x="150" y="187" width="124" height="17" rx="8"/><text x="158" y="199">lifetime 12 yr</text></g>
+    <text x="40" y="224" class="small">N₂O</text>
+    <g class="chip"><rect x="150" y="212" width="124" height="17" rx="8"/><text x="158" y="224">lifetime 120 yr</text></g>
+    <text x="40" y="249" class="small">Synthetic gases</text>
+    <g class="chip"><rect x="150" y="237" width="124" height="17" rx="8"/><text x="158" y="249">lifetime 100 yr</text></g>
+    <text x="40" y="274" class="small">Ozone precursors</text>
+    <g class="chip"><rect x="150" y="262" width="124" height="17" rx="8"/><text x="158" y="274">0.004 W per Tg</text></g>
+    <text x="40" y="299" class="small">Aerosols (SO₂)</text>
+    <g class="chip"><rect x="150" y="287" width="124" height="17" rx="8"/><text x="158" y="299">−0.009 W per Tg</text></g>
+    <text x="40" y="324" class="small">Volcanic</text>
+    <g class="chip"><rect x="150" y="312" width="124" height="17" rx="8"/><text x="158" y="324">lifetime 1.2 yr</text></g>
+    <text x="40" y="349" class="small">Solar · Albedo</text>
+    <text x="40" y="374" class="small">Clouds &amp; sun noise</text>
+    <g class="chip"><rect x="150" y="362" width="124" height="17" rx="8"/><text x="158" y="374">σ 0.5 W/m²</text></g>
+    <text x="40" y="399" class="small">Ocean-mixing noise</text>
+    <g class="chip"><rect x="150" y="387" width="124" height="17" rx="8"/><text x="158" y="399">σ 1.0 W/m² · 4 yr</text></g>
 
-    <!-- ================= centre: two-box ocean ================= -->
-    <!-- surface box -->
-    <rect x="352" y="170" width="330" height="140" fill="url(#sea1)" stroke="#6d97ad" rx="8"/>
-    <text x="368" y="194" class="boxlabel">ATMOSPHERE + UPPER OCEAN</text>
-    <text x="368" y="214" class="small">temperature T</text>
-    <g class="chip"><rect x="368" y="272" width="150" height="20"/><text x="376" y="286">heat capacity c_u = 8</text></g>
+    <!-- forcing arrow -->
+    <text x="300" y="222" class="flow">F(t)</text>
+    <path d="M296 240 L376 240" stroke="#dd8033" stroke-width="5" marker-end="url(#a-org)" fill="none"/>
 
-    <!-- deep box -->
-    <rect x="352" y="360" width="330" height="140" fill="url(#sea2)" stroke="#2d566f" rx="8"/>
-    <text x="368" y="384" class="boxlabel" fill="#eaf3f8" style="fill:#eaf3f8;">DEEP OCEAN</text>
-    <text x="368" y="404" class="small" style="fill:#d3e5ef;">temperature T₀</text>
-    <g class="chip"><rect x="368" y="462" width="158" height="20"/><text x="376" y="476">heat capacity c_l = 110</text></g>
+    <!-- ---------------- surface box ---------------- -->
+    <rect x="390" y="176" width="320" height="128" fill="url(#sea1)" stroke="#6d97ad" rx="8"/>
+    <text x="406" y="200" class="boxlabel">ATMOSPHERE + UPPER OCEAN</text>
+    <text x="406" y="219" class="small">temperature T</text>
+    <g class="chip"><rect x="406" y="262" width="176" height="19" rx="9"/><text x="414" y="275">heat capacity  c_u = 8</text></g>
 
     <!-- radiation to space -->
-    <path d="M560 170 L560 92" stroke="#c0392b" stroke-width="7" marker-end="url(#arr)" fill="none"/>
-    <text x="572" y="126" class="flow" fill="#7c1d12" style="fill:#7c1d12;">λT — heat radiated to space</text>
-    <g class="chip"><rect x="572" y="134" width="200" height="20"/><text x="580" y="148">climate sensitivity S = 3.0 °C</text></g>
-    <text x="572" y="168" class="tiny">λ = F₂ₓ / S — higher S ⇒ weaker cooling</text>
+    <path d="M636 176 L636 84" stroke="#b8402c" stroke-width="5" marker-end="url(#a-red)" fill="none"/>
+    <text x="654" y="112" class="flow" fill="#8c2f1e">λT  heat radiated to space</text>
+    <g class="chip"><rect x="654" y="124" width="196" height="19" rx="9"/><text x="662" y="137">climate sensitivity  S = 3.0 °C</text></g>
+    <text x="654" y="159" class="tiny">λ = F₂ₓ / S  ·  higher S ⇒ weaker cooling ⇒ more warming</text>
 
-    <!-- exchange arrow -->
-    <path d="M440 316 L440 354" stroke="#2c637f" stroke-width="7" marker-start="url(#arr)" marker-end="url(#arr)" fill="none"/>
-    <text x="404" y="340" text-anchor="end" class="flow">γ(T − T₀)</text>
-    <g class="chip"><rect x="452" y="326" width="72" height="20"/><text x="460" y="340">γ = 0.7</text></g>
+    <!-- exchange arrow between boxes -->
+    <path d="M470 312 L470 366" stroke="#2c637f" stroke-width="4"
+          marker-start="url(#a-blu-s)" marker-end="url(#a-blu)" fill="none"/>
+    <text x="404" y="344" class="flow">γ(T − T₀)</text>
+    <g class="chip" id="chipGamma"><rect x="486" y="330" width="84" height="19" rx="9"/><text x="494" y="343">γ = 0.7</text></g>
 
-    <!-- variability squiggle -->
-    <path d="M610 318 q8 6 0 12 q-8 6 0 12 q8 6 0 12" stroke="#8e44ad" stroke-width="4" fill="none" marker-end="url(#arr)"/>
-    <text x="626" y="340" class="flow" style="fill:#6b2f86;">q(t) random ocean mixing</text>
+    <!-- variability -->
+    <path d="M604 316 q10 8 0 16 q-10 8 0 16 q10 6 0 12" stroke="#7d3f9c" stroke-width="3" fill="none" marker-end="url(#a-pur)"/>
+    <text x="620" y="338" class="flow" fill="#6b2f86">q(t)</text>
+    <text x="620" y="354" class="tiny">random ocean mixing</text>
 
-    <!-- ================= bottom-left: carbon cycle ================= -->
-    <rect x="28" y="430" width="252" height="160" fill="#f2f7f0" stroke="#b9cdb4" rx="8"/>
-    <text x="42" y="452" class="boxlabel">CARBON CYCLE → CO₂ forcing</text>
-    <rect x="42" y="464" width="92" height="30" fill="#fff" stroke="#9fb69a" rx="5"/><text x="50" y="483" class="tiny">Atmosphere CO₂</text>
-    <rect x="42" y="546" width="92" height="30" fill="#fff" stroke="#9fb69a" rx="5"/><text x="58" y="565" class="tiny">Ocean C</text>
-    <rect x="168" y="464" width="92" height="30" fill="#fff" stroke="#9fb69a" rx="5"/><text x="180" y="483" class="tiny">Plants + soil</text>
-    <path d="M88 496 L88 544" stroke="#7a9a72" stroke-width="3" marker-start="url(#arr)" marker-end="url(#arr)" fill="none"/>
-    <path d="M136 479 L166 479" stroke="#7a9a72" stroke-width="3" marker-start="url(#arr)" marker-end="url(#arr)" fill="none"/>
-    <g class="chip"><rect x="150" y="546" width="116" height="20"/><text x="158" y="560">preset #2 · 15 params ▸</text></g>
+    <!-- ---------------- deep box ---------------- -->
+    <rect x="390" y="378" width="320" height="122" fill="url(#sea2)" stroke="#2b5169" rx="8"/>
+    <text x="406" y="402" class="boxlabel light">DEEP OCEAN</text>
+    <text x="406" y="421" class="small light">temperature T₀</text>
+    <g class="chip"><rect x="406" y="458" width="184" height="19" rx="9"/><text x="414" y="471">heat capacity  c_l = 110</text></g>
 
-    <!-- link carbon panel to forcing stack -->
-    <path d="M154 428 L154 412" stroke="#7a9a72" stroke-width="3" marker-end="url(#arr)" fill="none"/>
+    <!-- ---------------- sea level ---------------- -->
+    <text x="742" y="228" class="flow">T</text>
+    <path d="M716 240 L772 240" stroke="#4d6f84" stroke-width="4" marker-end="url(#a-gry)" fill="none"/>
+    <rect x="786" y="192" width="248" height="212" fill="#eef4fb" stroke="#b9c9dd" rx="8"/>
+    <text x="802" y="216" class="boxlabel">SEA LEVEL</text>
+    <path d="M802 246 q22 -11 44 0 t44 0 t44 0 t44 0" stroke="#8fb7ff" stroke-width="2.5" fill="none"/>
+    <path d="M802 256 q22 -11 44 0 t44 0 t44 0 t44 0" stroke="#4d8bff" stroke-width="3" fill="none"/>
+    <text x="802" y="290" class="small">warm water expands…</text>
+    <g class="chip"><rect x="802" y="298" width="216" height="19" rx="9"/><text x="810" y="311">0.87 mm/yr per °C · τ 200 yr</text></g>
+    <text x="802" y="344" class="small">…and land ice melts</text>
+    <g class="chip"><rect x="802" y="352" width="216" height="19" rx="9"/><text x="810" y="365">0.87 mm/yr per °C · τ 800 yr</text></g>
+    <text x="802" y="390" class="tiny">both driven by surface temperature T</text>
 
-    <!-- ================= right: sea level ================= -->
-    <rect x="760" y="200" width="252" height="230" fill="#eef4fb" stroke="#b9c9dd" rx="8"/>
-    <text x="776" y="224" class="boxlabel">SEA LEVEL</text>
-    <path d="M776 268 q20 -10 40 0 t40 0 t40 0 t40 0 t40 0" stroke="#4d8bff" stroke-width="3" fill="none"/>
-    <path d="M776 258 q20 -10 40 0 t40 0 t40 0 t40 0 t40 0" stroke="#8fb7ff" stroke-width="2" fill="none"/>
-    <text x="776" y="296" class="small">warmer water expands…</text>
-    <g class="chip"><rect x="776" y="304" width="176" height="18"/><text x="784" y="317">thermal: 0.87 mm/yr·°C, τ 200 yr</text></g>
-    <text x="776" y="346" class="small">…and land ice melts</text>
-    <g class="chip"><rect x="776" y="354" width="176" height="18"/><text x="784" y="367">land ice: 0.87 mm/yr·°C, τ 800 yr</text></g>
-    <text x="776" y="404" class="tiny">driven by surface temperature T</text>
-
-    <!-- T -> sea level arrow -->
-    <path d="M686 240 L754 240" stroke="#4d6f84" stroke-width="5" marker-end="url(#arr)" fill="none"/>
-    <text x="695" y="228" class="flow">T</text>
+    <!-- ---------------- carbon cycle summary card ---------------- -->
+    <rect x="24" y="440" width="266" height="96" fill="#f2f7f0" stroke="#b9cdb4" rx="8"/>
+    <text x="40" y="462" class="boxlabel">CARBON CYCLE</text>
+    <text x="40" y="480" class="tiny">turns CO₂ emissions into concentrations</text>
+    <text x="40" y="504" class="small">5 reservoirs · 11 parameters</text>
+    <g class="chip"><rect x="40" y="512" width="150" height="19" rx="9"/><text x="48" y="525">open carbon cycle ▸</text></g>
+    <path d="M154 436 L154 420" stroke="#5f8a57" stroke-width="3" marker-end="url(#a-grn)" fill="none"/>
   </svg>
 
-  <!-- example popover, as opened by clicking the γ chip -->
-  <div class="popover">
-    <div style="position:absolute; top:-9px; left:24px; width:16px; height:16px; background:#fff; border-left:1px solid var(--border); border-top:1px solid var(--border); transform:rotate(45deg);"></div>
+  <div class="popover" style="left:47%; top:64%;">
+    <div style="position:absolute; top:-8px; left:26px; width:14px; height:14px; background:#fff; border-left:1px solid var(--border); border-top:1px solid var(--border); transform:rotate(45deg);"></div>
     <h4>Ocean heat exchange — γ</h4>
-    <p class="phelp">How quickly heat mixes from the surface into the deep ocean. Higher γ ⇒ slower surface warming now, more warming “in the pipeline”.</p>
-    <div class="valrow"><span class="val">0.70 W/m²/°C</span><span class="default">default 0.7 · typical 0.5–1.2</span></div>
+    <p class="phelp">How fast heat mixes from the surface down into the deep ocean. Higher γ means slower warming now, but more warming still “in the pipeline”.</p>
+    <div class="valrow"><span class="val">0.70 W/m²/°C</span><span class="default">default 0.7</span></div>
     <input type="range" min="0.2" max="1.5" step="0.05" value="0.7" />
+    <div class="valrow" style="margin-bottom:8px;"><span class="tiny" style="color:var(--muted);">0.2</span><span class="default">typical 0.5–1.2</span><span class="tiny" style="color:var(--muted);">1.5</span></div>
+    <div class="btns"><button class="orange">Apply</button><button>Reset</button><button>Close</button></div>
+  </div>
+  </div>
+
+  <!-- ============================================================ VIEW 2 -->
+  <div class="view stage" id="v1">
+  <svg viewBox="0 0 1060 540" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="c-arr" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12"
+              refX="6" refY="6" orient="auto"><path d="M1,1 L11,6 L1,11 z" fill="#5f8a57"/></marker>
+      <marker id="c-arr-s" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12"
+              refX="6" refY="6" orient="auto-start-reverse"><path d="M1,1 L11,6 L1,11 z" fill="#5f8a57"/></marker>
+      <marker id="c-emis" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14"
+              refX="7" refY="7" orient="auto"><path d="M1,1 L13,7 L1,13 z" fill="#8a5a12"/></marker>
+      <marker id="c-out" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14"
+              refX="7" refY="7" orient="auto"><path d="M1,1 L13,7 L1,13 z" fill="#b8402c"/></marker>
+    </defs>
+
+    <!-- CO2 forcing out (top) -->
+    <path d="M300 108 L300 40" stroke="#b8402c" stroke-width="5" marker-end="url(#c-out)" fill="none"/>
+    <text x="318" y="52" class="flow" fill="#8c2f1e">F_CO₂ = 5.35 ln(C / C₀)   → to the climate system</text>
+    <text x="318" y="70" class="tiny">more atmospheric carbon ⇒ more trapped heat (logarithmic)</text>
+
+    <!-- emissions in (left) -->
+    <text x="24" y="146" class="flow" fill="#7a5210">your CO₂</text>
+    <text x="24" y="162" class="flow" fill="#7a5210">emissions E(t)</text>
+    <path d="M24 176 L136 176" stroke="#8a5a12" stroke-width="5" marker-end="url(#c-emis)" fill="none"/>
+
+    <!-- ATMOSPHERE -->
+    <rect x="150" y="110" width="300" height="86" fill="#eaf1f6" stroke="#7f9bab" stroke-width="2" rx="8"/>
+    <text x="166" y="134" class="boxlabel">ATMOSPHERE</text>
+    <text x="166" y="155" class="stock" style="fill:#254656;">C_at · 590 GtC in 1850</text>
+    <text x="166" y="176" class="tiny">carbon here sets the CO₂ concentration</text>
+
+    <!-- PLANTS -->
+    <rect x="700" y="110" width="220" height="86" fill="#eef6ea" stroke="#7fa374" stroke-width="2" rx="8"/>
+    <text x="716" y="134" class="boxlabel">PLANTS</text>
+    <text x="716" y="155" class="stock">C_veg · 940 GtC</text>
+    <text x="716" y="176" class="tiny">living vegetation</text>
+
+    <!-- SOIL -->
+    <rect x="700" y="300" width="220" height="86" fill="#f4f1e6" stroke="#a8996d" stroke-width="2" rx="8"/>
+    <text x="716" y="324" class="boxlabel">SOIL</text>
+    <text x="716" y="345" class="stock" style="fill:#5e5230;">C_soil · 1240 GtC</text>
+    <text x="716" y="366" class="tiny">dead organic matter</text>
+
+    <!-- UPPER OCEAN -->
+    <rect x="150" y="286" width="300" height="82" fill="#d8ecf7" stroke="#6d97ad" stroke-width="2" rx="8"/>
+    <text x="166" y="310" class="boxlabel">UPPER OCEAN</text>
+    <text x="166" y="331" class="stock" style="fill:#1d4256;">C_up · 711 GtC</text>
+    <text x="166" y="352" class="tiny">its chemistry also sets ocean pH</text>
+
+    <!-- DEEP OCEAN -->
+    <rect x="150" y="440" width="300" height="82" fill="#bcd9e9" stroke="#3f7791" stroke-width="2" rx="8"/>
+    <text x="166" y="464" class="boxlabel">DEEP OCEAN</text>
+    <text x="166" y="485" class="stock" style="fill:#1d4256;">C_deep · 37 500 GtC</text>
+    <text x="166" y="506" class="tiny">by far the biggest store — but slow to reach</text>
+
+    <!-- photosynthesis: atmosphere -> plants -->
+    <path d="M458 140 L694 140" stroke="#5f8a57" stroke-width="4" marker-end="url(#c-arr)" fill="none"/>
+    <text x="500" y="132" class="flow" fill="#3f6338">photosynthesis P</text>
+    <g class="chip"><rect x="470" y="146" width="176" height="19" rx="9"/><text x="478" y="159">baseline P₀ = 65 GtC/yr</text></g>
+    <g class="chip"><rect x="470" y="168" width="176" height="19" rx="9"/><text x="478" y="181">CO₂ fertilisation a₂ = 0.377</text></g>
+
+    <!-- plants -> soil -->
+    <path d="M810 202 L810 294" stroke="#5f8a57" stroke-width="4" marker-end="url(#c-arr)" fill="none"/>
+    <text x="824" y="226" class="flow" fill="#3f6338">litterfall</text>
+    <g class="chip"><rect x="824" y="234" width="164" height="19" rx="9"/><text x="832" y="247">turnover m = 0.07 /yr</text></g>
+    <g class="chip"><rect x="824" y="256" width="164" height="19" rx="9"/><text x="832" y="269">to soil: ε = 62%</text></g>
+
+    <!-- plants -> atmosphere (respiration, dashed) -->
+    <path d="M760 202 C 760 250, 520 246, 452 208" stroke="#5f8a57" stroke-width="3"
+          stroke-dasharray="6 4" marker-end="url(#c-arr)" fill="none"/>
+    <text x="516" y="240" class="tiny">plant respiration — the other 38% goes straight back</text>
+
+    <!-- soil -> atmosphere -->
+    <path d="M694 336 C 560 336, 500 320, 458 214" stroke="#5f8a57" stroke-width="4" marker-end="url(#c-arr)" fill="none"/>
+    <text x="536" y="330" class="flow" fill="#3f6338">soil decay</text>
+    <g class="chip"><rect x="504" y="338" width="164" height="19" rx="9"/><text x="512" y="351">decay δ = 0.033 /yr</text></g>
+
+    <!-- atmosphere <-> upper ocean -->
+    <path d="M240 202 L240 280" stroke="#5f8a57" stroke-width="4"
+          marker-start="url(#c-arr-s)" marker-end="url(#c-arr)" fill="none"/>
+    <text x="256" y="224" class="flow" fill="#3f6338">air–sea exchange</text>
+    <g class="chip" id="chipKa"><rect x="256" y="232" width="160" height="19" rx="9"/><text x="264" y="245">rate k_a = 0.18 /yr</text></g>
+    <g class="chip"><rect x="256" y="254" width="160" height="19" rx="9"/><text x="264" y="267">solubility A = 143.7</text></g>
+
+    <!-- upper <-> deep -->
+    <path d="M240 374 L240 434" stroke="#5f8a57" stroke-width="4"
+          marker-start="url(#c-arr-s)" marker-end="url(#c-arr)" fill="none"/>
+    <text x="256" y="392" class="flow" fill="#3f6338">overturning</text>
+    <g class="chip"><rect x="256" y="400" width="160" height="19" rx="9"/><text x="264" y="413">rate k_d = 0.056 /yr</text></g>
+    <g class="chip"><rect x="256" y="422" width="160" height="19" rx="9"/><text x="264" y="435">depth ratio d = 54.4</text></g>
+
+    <!-- chemistry panel -->
+    <rect x="470" y="392" width="284" height="118" fill="#f6fafc" stroke="#c3d5de" rx="8"/>
+    <text x="486" y="414" class="boxlabel">OCEAN CHEMISTRY</text>
+    <text x="486" y="434" class="small">The more carbon the ocean already holds,</text>
+    <text x="486" y="450" class="small">the harder it is to absorb more — and the</text>
+    <text x="486" y="466" class="small">more acidic it becomes.</text>
+    <g class="chip"><rect x="486" y="476" width="176" height="19" rx="9"/><text x="494" y="489">alkalinity Alk = 767</text></g>
+
+    <!-- preset panel -->
+    <rect x="776" y="392" width="258" height="118" fill="#fdf8ef" stroke="#e0cba5" rx="8"/>
+    <text x="792" y="414" class="boxlabel">PARAMETER SET</text>
+    <text x="792" y="434" class="small">Four published calibrations of</text>
+    <text x="792" y="450" class="small">this carbon cycle.</text>
+    <g class="chip"><rect x="792" y="462" width="120" height="20" rx="9"/><text x="800" y="476">preset 2 &#9662;</text></g>
+    <text x="792" y="500" class="tiny">switching resets every value here</text>
+  </svg>
+
+  <div class="popover" style="left:25%; top:50%;">
+    <div style="position:absolute; top:-8px; left:26px; width:14px; height:14px; background:#fff; border-left:1px solid var(--border); border-top:1px solid var(--border); transform:rotate(45deg);"></div>
+    <h4>Air&ndash;sea exchange rate &mdash; k_a</h4>
+    <p class="phelp">How quickly the ocean surface soaks up CO&#8322; from the air. A bigger k_a pulls carbon out of the atmosphere faster &mdash; and acidifies the ocean faster.</p>
+    <div class="valrow"><span class="val">0.180 /yr</span><span class="default">preset 2 default</span></div>
+    <input type="range" min="0.10" max="0.30" step="0.005" value="0.18" />
+    <div class="valrow" style="margin-bottom:8px;"><span class="tiny" style="color:var(--muted);">0.10</span><span class="default">presets span 0.145&ndash;0.268</span><span class="tiny" style="color:var(--muted);">0.30</span></div>
     <div class="btns"><button class="orange">Apply</button><button>Reset</button><button>Close</button></div>
   </div>
   </div>
 
   <div class="footbar">
-    <span>Click any <b style="color:var(--accentDark);">orange value</b> to change it · changed values get an <b>EDITED</b> ring · table view still available</span>
+    <span>Click any <b style="color:var(--accentDark);">orange value</b> · changed values get a bold outline · <a href="#" style="color:#3f5d82;">table view</a></span>
     <button>Reset all to defaults</button>
   </div>
 </div>
+
+<script>
+function show(i, btn){
+  document.querySelectorAll(".view").forEach((v,k)=>v.classList.toggle("active", k===i));
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+}
+</script>
 </body>
 </html>
