@@ -68,6 +68,7 @@
       carbonOverrides:{},
       methaneOverrides:{},
       seaOverrides:{},
+      gasOverrides:{},
       iv: {...IV_DEFAULT}
     },
     outputPanels: { sea:false, conc:false, carbon:false, ph:false, f:false, local:false },

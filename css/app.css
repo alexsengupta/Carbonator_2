@@ -1210,3 +1210,75 @@
   line-height:1;
 }
 .info-btn:hover{ background:#3f5d82; color:#fff; }
+
+/* ==========================================================================
+   Schematic parameter editor
+   ========================================================================== */
+.paramViewSwitch{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+.ps-root{ font-size:12px; }
+.ps-tabs{
+  display:flex;
+  gap:6px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:10px;
+}
+.ps-tabs button{
+  font-size:12.5px;
+  font-weight:700;
+  padding:6px 14px;
+  border:1px solid var(--border);
+  border-bottom:none;
+  border-radius:5px 5px 0 0;
+  background:#eef3f6;
+  color:#41565f;
+  cursor:pointer;
+  position:relative;
+  top:1px;
+  font-family:inherit;
+}
+.ps-tabs button.active{ background:#fff; color:#1b1b1b; border-bottom:1px solid #fff; }
+
+.ps-stage{ position:relative; }
+.ps-svg{ width:100%; height:auto; display:block; }
+
+.ps-box{ font:700 12.5px Arial; fill:#173042; }
+.ps-box.ps-light, .ps-small.ps-light{ fill:#eaf3f8; }
+.ps-small{ font:11px Arial; fill:#3c5262; }
+.ps-tiny{ font:10px Arial; fill:#61717c; }
+.ps-flow{ font:italic 700 12px Georgia, serif; fill:#173042; }
+.ps-stock{ font:700 11px Arial; fill:#254656; }
+.ps-space{ font:11px Arial; fill:#b9cede; letter-spacing:2.5px; }
+
+.ps-chip{ cursor:pointer; }
+.ps-chip rect{ fill:#fdf1de; stroke:var(--accentDark); stroke-width:1; }
+.ps-chip text{ font:700 10.5px Arial; fill:#8a5a12; pointer-events:none; }
+.ps-chip:hover rect{ fill:var(--accent); }
+.ps-chip.edited rect{ fill:#fce6c2; stroke:#8a5a12; stroke-width:2.5; }
+
+.ps-pop{
+  position:absolute;
+  width:262px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:7px;
+  box-shadow:0 8px 26px rgba(0,0,0,0.22);
+  padding:12px 14px;
+  z-index:20;
+}
+.ps-pop h4{ margin:0 0 4px; font-size:12.5px; }
+.ps-help{ color:var(--muted); font-size:11px; margin:0 0 8px; line-height:1.45; }
+.ps-pop input[type=range]{ width:100%; margin:2px 0 4px; }
+.ps-pop .ps-select{ width:100%; font-size:12px; padding:5px; border:1px solid var(--border); border-radius:4px; }
+.ps-valrow{ display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+.ps-val{ font-weight:700; font-size:13.5px; }
+.ps-def{ font-size:10.5px; color:var(--muted); }
+.ps-range{ font-size:10px; color:var(--muted); margin-bottom:8px; }
+.ps-btns{ display:flex; gap:6px; }
+.ps-btns .btn{ font-size:11px; padding:4px 10px; }
+.ps-hint{ margin-top:8px; font-size:11.5px; color:var(--muted); }

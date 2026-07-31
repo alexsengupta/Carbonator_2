@@ -331,11 +331,23 @@
       carbonOverrides: {...(state.params.carbonOverrides||{})},
       methaneOverrides: {...(state.params.methaneOverrides||{})},
       seaOverrides: {...(state.params.seaOverrides||{})},
+      gasOverrides: {...(state.params.gasOverrides||{})},
       iv: {...((state.params.iv)||IV_DEFAULT)}
     };
 
     const wrap = document.createElement("div");
     wrap.innerHTML = `
+      <div class="paramViewSwitch">
+        <button type="button" class="btn orange" id="pvDiagram">Diagram</button>
+        <button type="button" class="btn" id="pvTable">Table</button>
+        <span class="tiny" style="color:#5b5b5b; font-size:11.5px;">
+          The diagram shows each value on the part of the model it controls.
+        </span>
+      </div>
+
+      <div id="paramDiagramHost"></div>
+
+      <div id="paramTableHost" style="display:none;">
       <p style="margin-top:0; font-size:13px; line-height:1.35;">
         Advanced mode: adjust parameters and re-run the scenario. “Plausible” ranges are indicative; you can explore beyond them.
       </p>
@@ -393,9 +405,12 @@
         <div class="param-grid" id="gridIV"></div>
       </div>
 
-      <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; align-items:center;">
         <button class="btn orange" id="applyParams">Apply</button>
         <button class="btn" id="resetParams">Reset to defaults</button>
+        <span id="paramEditedNote" class="tiny" style="color:#8a5a12; font-size:11.5px;"></span>
       </div>
     `;
 
@@ -660,6 +675,66 @@
       });
     }
 
+    // ---- schematic view -------------------------------------------------
+    const diagramHost = wrap.querySelector("#paramDiagramHost");
+    const tableHost = wrap.querySelector("#paramTableHost");
+    const editedNote = wrap.querySelector("#paramEditedNote");
+
+    function countEdits(){
+      let n = Object.keys(tmp.carbonOverrides||{}).length
+            + Object.keys(tmp.methaneOverrides||{}).length
+            + Object.keys(tmp.seaOverrides||{}).length
+            + Object.keys(tmp.gasOverrides||{}).length;
+      if (tmp.S !== defaultS()) n++;
+      if (tmp.cu !== DEFAULTS.params.cu) n++;
+      if (tmp.cl !== DEFAULTS.params.cl) n++;
+      if (tmp.gamma !== DEFAULTS.params.gamma) n++;
+      if (tmp.carbonConfig !== DEFAULTS.params.carbonConfig) n++;
+      for (const k of ["amp","period","tau","cloudAmp","cloudTau"]){
+        if ((tmp.iv||{})[k] !== undefined && tmp.iv[k] !== IV_DEFAULT[k]) n++;
+      }
+      return n;
+    }
+    function noteEdits(){
+      const n = countEdits();
+      editedNote.textContent = n ? `${n} value${n===1?"":"s"} changed — press Apply to use them` : "";
+    }
+
+    const schematic = buildParamSchematic(tmp, ()=>{ noteEdits(); syncTableFromTmp(); });
+    diagramHost.appendChild(schematic);
+    noteEdits();
+
+    // Keep the table inputs in step when the diagram changes a value
+    function syncTableFromTmp(){
+      // climate sliders are one-off boxes keyed by data-k / data-n
+      for (const k of ["S","gamma","cu","cl"]){
+        const r = wrap.querySelector(`input[type="range"][data-k="${k}"]`);
+        const n = wrap.querySelector(`input[type="number"][data-n="${k}"]`);
+        if (r) r.value = tmp[k];
+        if (n) n.value = tmp[k];
+      }
+      renderCarbonGrid();
+      renderMethaneGrid();
+      renderSeaGrid();
+      if (typeof renderIVGrid === "function") renderIVGrid();
+      if (carbonCfgSelect) carbonCfgSelect.value = String(tmp.carbonConfig);
+    }
+
+    wrap.querySelector("#pvDiagram").addEventListener("click", ()=>{
+      diagramHost.style.display = "";
+      tableHost.style.display = "none";
+      wrap.querySelector("#pvDiagram").classList.add("orange");
+      wrap.querySelector("#pvTable").classList.remove("orange");
+      if (schematic.refreshAll) schematic.refreshAll();
+    });
+    wrap.querySelector("#pvTable").addEventListener("click", ()=>{
+      diagramHost.style.display = "none";
+      tableHost.style.display = "";
+      wrap.querySelector("#pvTable").classList.add("orange");
+      wrap.querySelector("#pvDiagram").classList.remove("orange");
+      syncTableFromTmp();
+    });
+
     wrap.querySelector("#applyParams").addEventListener("click", ()=>{
       // climate
       ["S","gamma","cu","cl"].forEach(k=>{
@@ -715,6 +790,7 @@
         carbonOverrides: tmp.carbonOverrides,
         methaneOverrides: tmp.methaneOverrides,
         seaOverrides: tmp.seaOverrides,
+        gasOverrides: tmp.gasOverrides,
         iv: tmp.iv
       };
 

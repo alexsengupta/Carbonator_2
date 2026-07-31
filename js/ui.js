@@ -111,6 +111,7 @@
            (state.params && (Object.keys(state.params.carbonOverrides||{}).length>0 ||
                              Object.keys(state.params.methaneOverrides||{}).length>0 ||
                              Object.keys(state.params.seaOverrides||{}).length>0 ||
+                             Object.keys(state.params.gasOverrides||{}).length>0 ||
                              state.params.carbonConfig !== DEFAULTS.params.carbonConfig ||
                              state.params.S !== defaultS() ||
                              state.params.cu !== DEFAULTS.params.cu ||
